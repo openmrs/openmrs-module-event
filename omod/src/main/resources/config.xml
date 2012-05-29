@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<module configVersion="1.2">
+
+	<!-- Module Properties -->
+	<id>${project.parent.artifactId}</id>
+	<name>${project.parent.name}</name>
+	<version>${project.parent.version}</version>
+	<package>org.openmrs.event</package>
+	<author>OpenMRS</author>
+	<description>
+		${project.parent.description}
+	</description>
+	<updateURL>https://dev.openmrs.org/modules/download/${project.parent.artifactId}/update.rdf</updateURL>
+	<require_version>${openMRSVersion}</require_version>
+	<!-- / Module Properties -->
+
+	
+	<!-- Module Activator -->
+	<activator>org.openmrs.module.event.EventActivator</activator>
+	
+	<advice>
+		<point>org.openmrs.api.PatientService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.ConceptService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.FormService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.PersonService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.UserService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.EncounterService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.ObsService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.AdministrationService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	<advice>
+		<point>org.openmrs.api.OrderService</point>
+		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
+	</advice>
+	
+	<!-- Maps hibernate file's, if present -->
+	<mappingFiles>
+				
+	</mappingFiles>
+
+	<!-- Internationalization -->
+	<!-- All message codes should start with ${project.parent.artifactId}. -->
+	<messages>
+		<lang>en</lang>
+		<file>messages.properties</file>
+	</messages>
+	<messages>
+		<lang>fr</lang>
+		<file>messages_fr.properties</file>
+	</messages>
+	<messages>
+		<lang>es</lang>
+		<file>messages_es.properties</file>
+	</messages>
+	<!-- /Internationalization -->
+
+</module>
+
