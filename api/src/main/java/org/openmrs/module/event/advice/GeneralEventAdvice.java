@@ -27,12 +27,15 @@ import org.openmrs.ConceptClass;
 import org.openmrs.ConceptDatatype;
 import org.openmrs.GlobalProperty;
 import org.openmrs.OpenmrsObject;
+import org.openmrs.Order;
+import org.openmrs.OrderType;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.User;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.ConceptService;
+import org.openmrs.api.OrderService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
@@ -239,6 +242,9 @@ public class GeneralEventAdvice implements MethodInterceptor {
 			supportedClasses.add(GlobalProperty.class.getName());
 		} else if (UserService.class.isAssignableFrom(serviceClass)) {
 			supportedClasses.add(User.class.getName());
+		} else if (OrderService.class.isAssignableFrom(serviceClass)) {
+			supportedClasses.add(Order.class.getName());
+			supportedClasses.add(OrderType.class.getName());
 		} else {
 			Handler handler = (Handler) serviceClass.getAnnotation(Handler.class);
 			if (handler != null) {
