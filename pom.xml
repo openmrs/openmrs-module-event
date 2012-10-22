@@ -3,7 +3,7 @@
 
 	<groupId>org.openmrs</groupId>
 	<artifactId>event</artifactId>
-	<version>1.2-SNAPSHOT</version>
+	<version>1.2</version>
 	<packaging>pom</packaging>
 	<name>Event Module</name>
 	<description>Provides a dev friendly event notifying mechanism</description>
@@ -21,9 +21,9 @@
 	</organization>
 
 	<scm>
-		<connection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/trunk/</connection>
-		<developerConnection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/trunk/</developerConnection>
-		<url>https://svn.openmrs.org/openmrs-modules/event/trunk/</url>
+		<connection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/tags/1.2</connection>
+		<developerConnection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/tags/1.2</developerConnection>
+		<url>https://svn.openmrs.org/openmrs-modules/event/tags/1.2</url>
 	</scm>
 
 	<modules>
