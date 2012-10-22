@@ -1,22 +1,11 @@
 package org.openmrs.module.event.advice;
 
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Set;
-
 import org.aopalliance.intercept.MethodInvocation;
 import org.hibernate.proxy.HibernateProxy;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.openmrs.Concept;
-import org.openmrs.ConceptClass;
-import org.openmrs.ConceptName;
-import org.openmrs.GlobalProperty;
-import org.openmrs.User;
+import org.openmrs.*;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
@@ -26,6 +15,13 @@ import org.openmrs.event.EventEngineUtil;
 import org.openmrs.event.MockEventListener;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
+
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Set;
+
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 public class GeneralEventAdviceTest extends BaseModuleContextSensitiveTest {
 	
@@ -128,7 +124,17 @@ public class GeneralEventAdviceTest extends BaseModuleContextSensitiveTest {
 		
 		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), user);
 	}
-	
+
+    @Test
+    @Verifies(value = "should fire event on updating a sub class", method = "invoke(MethodInvocation")
+    public void invoke_shouldFireEventOnWhenUpdatingASubclass() throws Exception {
+        Patient patient = Context.getPatientService().getPatient(2);
+        patient.setGender("F");
+        Context.getPersonService().savePerson(patient);
+
+        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+    }
+
 	/**
 	 * @see {@link GeneralEventAdvice#invoke(MethodInvocation)}
 	 */

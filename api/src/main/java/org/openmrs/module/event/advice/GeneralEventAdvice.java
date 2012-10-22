@@ -11,36 +11,23 @@
  */
 package org.openmrs.module.event.advice;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.aopalliance.intercept.MethodInterceptor;
 import org.aopalliance.intercept.MethodInvocation;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.Hibernate;
-import org.openmrs.Concept;
-import org.openmrs.ConceptClass;
-import org.openmrs.ConceptDatatype;
-import org.openmrs.GlobalProperty;
-import org.openmrs.OpenmrsObject;
-import org.openmrs.Order;
-import org.openmrs.OrderType;
-import org.openmrs.Patient;
-import org.openmrs.PatientIdentifierType;
-import org.openmrs.User;
+import org.openmrs.*;
 import org.openmrs.annotation.Handler;
-import org.openmrs.api.AdministrationService;
-import org.openmrs.api.ConceptService;
-import org.openmrs.api.OrderService;
-import org.openmrs.api.PatientService;
-import org.openmrs.api.UserService;
+import org.openmrs.api.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
+
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class is registered against multiple openmrs services to fireevents to
@@ -171,13 +158,13 @@ public class GeneralEventAdvice implements MethodInterceptor {
 	 * @return Action or null if no
 	 */
 	protected Action determineAction(String methodName, Object object, boolean created, Set<String> supportedClasses) {
-		Class objectClass = Hibernate.getClass(object);
-		String objectName = objectClass.getName();
-		String objectSimplename = objectClass.getSimpleName();
 
-		if (!supportedClasses.contains(objectName)) {
-			return null;
-		}
+        Class objectClass = Hibernate.getClass(object);
+        String objectSimplename = supportedObjectSimplename(objectClass, supportedClasses);
+
+        if (objectSimplename == null) {
+            return null;
+        }
 
 		if (isActionMethod(methodName, "save", objectSimplename)) {
 			if (created) {
@@ -245,7 +232,10 @@ public class GeneralEventAdvice implements MethodInterceptor {
 		} else if (OrderService.class.isAssignableFrom(serviceClass)) {
 			supportedClasses.add(Order.class.getName());
 			supportedClasses.add(OrderType.class.getName());
-		} else {
+		} else if  (PersonService.class.isAssignableFrom(serviceClass)) {
+            supportedClasses.add(Person.class.getName());
+        }
+        else {
 			Handler handler = (Handler) serviceClass.getAnnotation(Handler.class);
 			if (handler != null) {
 				for (Class<?> cls : handler.supports()) {
@@ -256,4 +246,25 @@ public class GeneralEventAdvice implements MethodInterceptor {
 
 		return supportedClasses;
 	}
+
+    /**
+     * If this is supported class, or one of its supertypes is a supported class,
+     * this method runs the simple name of that supported class
+     *
+     * For instance, if TestOrder.class is passed in, this method should return "Order"
+     *
+     * @param clazz
+     * @param supportedClasses
+     * @return
+     */
+    public String supportedObjectSimplename(Class clazz, Set<String> supportedClasses) {
+
+        if (supportedClasses.contains(clazz.getName())) {
+            return clazz.getSimpleName();
+        }
+        if (clazz.getSuperclass() != null) {
+            return supportedObjectSimplename(clazz.getSuperclass(), supportedClasses);
+        }
+        return null;
+    }
 }
