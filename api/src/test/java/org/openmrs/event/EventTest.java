@@ -30,13 +30,16 @@ import org.openmrs.api.context.Context;
 import org.openmrs.event.Event.Action;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
+import org.springframework.test.annotation.NotTransactional;
 
+@SuppressWarnings("deprecation")
 public class EventTest extends BaseModuleContextSensitiveTest {
 	
 	/**
 	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should subscribe only to the specified action", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
 	public void subscribe_shouldSubscribeOnlyToTheSpecifiedAction() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -48,6 +51,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		concept.addName(name);
 		cs.saveConcept(concept);
 		
+		concept.setVersion("new random version");
 		cs.saveConcept(concept);
 		
 		cs.purgeConcept(concept);
@@ -63,6 +67,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should subscribe to every action if action is null", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
 	public void subscribe_shouldSubscribeToEveryActionIfActionIsNull() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -74,6 +79,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		concept.addName(name);
 		cs.saveConcept(concept);
 		
+		concept.setVersion("new random version");
 		cs.saveConcept(concept);
 		
 		cs.purgeConcept(concept);
@@ -89,6 +95,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#unsubscribe(Destination,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should unsubscribe from the specified destination", method = "unsubscribe(Destination,EventListener)")
 	public void unsubscribe_shouldUnsubscribeFromTheSpecifiedDestination() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -121,6 +128,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#unsubscribe(Class<+QOpenmrsObject;>,Action,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should unsubscribe for every action if action is null", method = "unsubscribe(Class<+QOpenmrsObject;>,Action,EventListener)")
 	public void unsubscribe_shouldUnsubscribeForEveryActionIfActionIsNull() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -153,6 +161,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#unsubscribe(Class<OpenmrsObject>,Action,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should unsubscribe only for the specified action", method = "unsubscribe(Class<OpenmrsObject>,Action,EventListener)")
 	public void unsubscribe_shouldUnsubscribeOnlyForTheSpecifiedAction() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -185,6 +194,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#unsubscribe(Destination,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "maintain subscriptions to the same topic for other listeners", method = "unsubscribe(Destination,EventListener)")
 	public void unsubscribe_shouldMaintainSubscriptionsToTheSameTopicForOtherListeners() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -194,6 +204,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		Event.subscribe(Concept.class, Action.UPDATED.toString(), listener2);
 		
 		Concept concept = cs.getConcept(3);
+		concept.setVersion("new random version");
 		cs.saveConcept(concept);
 		
 		listener1.waitForEvents();
@@ -206,6 +217,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		listener2.setExpectedEventsCount(1);
 		
 		Event.unsubscribe(Concept.class, Action.UPDATED, listener1);
+		concept.setVersion("another random version");
 		cs.saveConcept(concept);
 		
 		listener1.waitForEvents();
@@ -216,13 +228,13 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	public class AnotherTestEventListener extends MockEventListener {
-
+		
 		/**
-         * @param expectedEventsCount
-         */
-        public AnotherTestEventListener(int expectedEventsCount) {
-	        super(expectedEventsCount);
-        }
+		 * @param expectedEventsCount
+		 */
+		public AnotherTestEventListener(int expectedEventsCount) {
+			super(expectedEventsCount);
+		}
 		
 	}
 	
@@ -230,6 +242,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#unsetSubscription(SubscribableEventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should remove given subscriptions", method = "unsetSubscription(SubscribableEventListener)")
 	public void unsetSubscription_shouldRemoveGivenSubscriptions() throws Exception {
 		
@@ -243,6 +256,8 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		ConceptName name1 = new ConceptName("Name1", Locale.ENGLISH);
 		concept1.addName(name1);
 		cs.saveConcept(concept1);
+		
+		concept1.setVersion("new random version");
 		cs.saveConcept(concept1);
 		cs.purgeConcept(concept1);
 		
@@ -270,12 +285,12 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	private class TestSubscribableEventListener extends MockEventListener implements SubscribableEventListener {
 		
 		/**
-         * @param expectedEventsCount
-         */
-        public TestSubscribableEventListener(int expectedEventsCount) {
-	        super(expectedEventsCount);
-        }
-
+		 * @param expectedEventsCount
+		 */
+		public TestSubscribableEventListener(int expectedEventsCount) {
+			super(expectedEventsCount);
+		}
+		
 		/**
 		 * @return a list of classes that this can handle
 		 */
@@ -301,6 +316,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should not subscribe duplicate event listeners ", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
 	public void subscribe_shouldNotSubscribeDuplicateEventListeners() throws Exception {
 		ConceptService cs = Context.getConceptService();

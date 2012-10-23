@@ -24,12 +24,4 @@
 		<!-- default properties must be set in the hibernate.default.properties -->
 	</bean>
 	
-	<bean id="event.GeneralEventAdvice" class="org.openmrs.module.event.advice.GeneralEventAdvice" />
-	
-	<util:list id="serviceInterceptors">
-		<ref bean="authorizationInterceptor"/>
-		<ref bean="requiredDataInterceptor"/>
-		<ref bean="loggingInterceptor"/>
-		<ref bean="event.GeneralEventAdvice"/>
-	</util:list>
 </beans>

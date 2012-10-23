@@ -19,5 +19,6 @@
 
 	<!-- Add here beans related to the API context -->
 
+	<bean id="${project.parent.artifactId}Interceptor" class="${project.parent.groupId}.${project.parent.artifactId}.api.db.hibernate.HibernateEventInterceptor" />
 	
 </beans>

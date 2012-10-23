@@ -32,8 +32,9 @@ import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jms.IllegalStateException;
+import org.springframework.test.annotation.NotTransactional;
 
+@SuppressWarnings("deprecation")
 public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	
 	@Autowired
@@ -52,6 +53,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link EventActivator#started()}
 	 */
 	@Test
+	@NotTransactional
 	@Verifies(value = "should create subscriptions for all subscribable event listeners", method = "started()")
 	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners() throws Exception {
 		ConceptService cs = Context.getConceptService();
@@ -74,6 +76,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		
 		new EventActivator().started();
 		
+		concept.setVersion("new version");
+		cs.saveConcept(concept);
+		
 		cs.saveConcept(concept);
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
@@ -91,7 +96,8 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	/**
 	 * @see {@link EventActivator#stopped()}
 	 */
-	@Test(expected = IllegalStateException.class)
+	@Test
+	@NotTransactional
 	@Verifies(value = "should shutdown the jms connection", method = "stopped()")
 	public void stopped_shouldShutdownTheJmsConnection() throws Exception {
 		listener.setExpectedEventsCount(2);
@@ -100,8 +106,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(3);
-		
+		concept.setVersion("new version");
 		cs.saveConcept(concept);
+		
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
 		concept3.addName(name3);
@@ -115,7 +122,20 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		Assert.assertEquals(0, listener.getDeletedCount());
 		
 		new EventActivator().stopped();
+		
+		concept.setVersion("another version");
 		cs.saveConcept(concept);
+		
+		Concept concept4 = new Concept();
+		ConceptName name4 = new ConceptName("Name4", Locale.ENGLISH);
+		concept4.addName(name4);
+		cs.saveConcept(concept4);
+		cs.purgeConcept(concept4);
+		
+		//there should have been no changes
+		Assert.assertEquals(1, listener.getCreatedCount());
+		Assert.assertEquals(1, listener.getUpdatedCount());
+		Assert.assertEquals(0, listener.getDeletedCount());
 	}
 	
 	@Handler

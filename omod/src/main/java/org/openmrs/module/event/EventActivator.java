@@ -18,15 +18,11 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
-import org.openmrs.api.context.Context;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
 import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.module.ModuleActivator;
-import org.openmrs.module.ModuleUtil;
-import org.openmrs.module.event.advice.GeneralEventAdvice;
 import org.openmrs.util.HandlerUtil;
-import org.openmrs.util.OpenmrsConstants;
 
 /**
  * This class contains the logic that is run every time this module is either started or stopped.
@@ -73,16 +69,6 @@ public class EventActivator implements ModuleActivator {
 				}
 			}
 		}
-		
-		// if 1.9+, add advice to ProviderService
-		if (ModuleUtil.compareVersion(OpenmrsConstants.OPENMRS_VERSION_SHORT, "1.9.0") > 0) {
-			try {
-				Context.addAdvice(Context.loadClass("org.openmrs.api.ProviderService"), new GeneralEventAdvice());
-			}
-			catch (ClassNotFoundException e) {
-				log.error("Failed to load ProviderService", e);
-			}
-		}
 	}
 	
 	/**
@@ -107,16 +93,6 @@ public class EventActivator implements ModuleActivator {
 					for (String action : listener.subscribeToActions()) {
 						Event.unsubscribe(clazz, Action.valueOf(action), listener);
 					}
-				}
-			}
-			
-			// if 1.9+, remove advice from ProviderService;
-			if (ModuleUtil.compareVersion(OpenmrsConstants.OPENMRS_VERSION_SHORT, "1.9.0") > 0) {
-				try {
-					Context.removeAdvice(Context.loadClass("org.openmrs.api.ProviderService"), new GeneralEventAdvice());
-				}
-				catch (ClassNotFoundException e) {
-					log.error("Failed to load ProviderService", e);
 				}
 			}
 		}
