@@ -19,43 +19,6 @@
 	<!-- Module Activator -->
 	<activator>org.openmrs.module.event.EventActivator</activator>
 	
-	<advice>
-		<point>org.openmrs.api.PatientService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.ConceptService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.FormService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.PersonService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.UserService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.EncounterService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.ObsService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.AdministrationService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	<advice>
-		<point>org.openmrs.api.OrderService</point>
-		<class>org.openmrs.module.event.advice.GeneralEventAdvice</class>
-	</advice>
-	
 	<!-- Maps hibernate file's, if present -->
 	<mappingFiles>
 				
