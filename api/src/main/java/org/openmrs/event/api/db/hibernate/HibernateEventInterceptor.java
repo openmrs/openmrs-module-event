@@ -12,14 +12,15 @@ import org.hibernate.Transaction;
 import org.hibernate.collection.PersistentCollection;
 import org.hibernate.type.Type;
 import org.openmrs.OpenmrsObject;
+import org.openmrs.Retireable;
+import org.openmrs.Voidable;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
 
 /**
  * A hibernate {@link Interceptor} implementation, intercepts any database inserts, updates and
- * deletes in a single session hibernate session and fires the necessary events. Any
- * changes/inserts/deletes made to the DB that are not made through the application won't be
- * detected by the module.
+ * deletes in a single hibernate session and fires the necessary events. Any changes/inserts/deletes
+ * made to the DB that are not made through the application won't be detected by the module.
  */
 public class HibernateEventInterceptor extends EmptyInterceptor {
 	
@@ -27,20 +28,32 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	
 	protected final Log log = LogFactory.getLog(HibernateEventInterceptor.class);
 	
-	private ThreadLocal<HashSet<Object>> inserts = new ThreadLocal<HashSet<Object>>();
+	private ThreadLocal<HashSet<OpenmrsObject>> inserts = new ThreadLocal<HashSet<OpenmrsObject>>();
 	
-	private ThreadLocal<HashSet<Object>> updates = new ThreadLocal<HashSet<Object>>();
+	private ThreadLocal<HashSet<OpenmrsObject>> updates = new ThreadLocal<HashSet<OpenmrsObject>>();
 	
-	private ThreadLocal<HashSet<Object>> deletes = new ThreadLocal<HashSet<Object>>();
+	private ThreadLocal<HashSet<OpenmrsObject>> deletes = new ThreadLocal<HashSet<OpenmrsObject>>();
+	
+	private ThreadLocal<HashSet<OpenmrsObject>> retiredObjects = new ThreadLocal<HashSet<OpenmrsObject>>();
+	
+	private ThreadLocal<HashSet<OpenmrsObject>> unretiredObjects = new ThreadLocal<HashSet<OpenmrsObject>>();
+	
+	private ThreadLocal<HashSet<OpenmrsObject>> voidedObjects = new ThreadLocal<HashSet<OpenmrsObject>>();
+	
+	private ThreadLocal<HashSet<OpenmrsObject>> unvoidedObjects = new ThreadLocal<HashSet<OpenmrsObject>>();
 	
 	/**
 	 * @see org.hibernate.EmptyInterceptor#afterTransactionBegin(org.hibernate.Transaction)
 	 */
 	@Override
 	public void afterTransactionBegin(Transaction tx) {
-		inserts.set(new HashSet<Object>());
-		updates.set(new HashSet<Object>());
-		deletes.set(new HashSet<Object>());
+		inserts.set(new HashSet<OpenmrsObject>());
+		updates.set(new HashSet<OpenmrsObject>());
+		deletes.set(new HashSet<OpenmrsObject>());
+		retiredObjects.set(new HashSet<OpenmrsObject>());
+		unretiredObjects.set(new HashSet<OpenmrsObject>());
+		voidedObjects.set(new HashSet<OpenmrsObject>());
+		unvoidedObjects.set(new HashSet<OpenmrsObject>());
 	}
 	
 	/**
@@ -49,10 +62,12 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	 */
 	@Override
 	public boolean onSave(Object entity, Serializable id, Object[] state, String[] propertyNames, Type[] types) {
-		if (OpenmrsObject.class.isAssignableFrom(entity.getClass())) {
+		if (entity instanceof OpenmrsObject) {
 			inserts.get().add((OpenmrsObject) entity);
 		}
 		
+		//tells hibernate that there are no changes made here that 
+		//need to be propagated to the persistent object and DB
 		return false;
 	}
 	
@@ -64,10 +79,40 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	public boolean onFlushDirty(Object entity, Serializable id, Object[] currentState, Object[] previousState,
 	                            String[] propertyNames, Type[] types) {
 		
-		if (OpenmrsObject.class.isAssignableFrom(entity.getClass())) {
-			updates.get().add((OpenmrsObject) entity);
-			//TODO Look at the changes in retired/voided properties and trigger 
-			//events for retired, unretired, voided, unvoided if necessary
+		if (entity instanceof OpenmrsObject) {
+			OpenmrsObject object = (OpenmrsObject) entity;
+			updates.get().add(object);
+			//Fire events for retired/unretired and voided/unvoided objects
+			if (entity instanceof Retireable || entity instanceof Voidable) {
+				for (int i = 0; i < propertyNames.length; i++) {
+					String auditableProperty = (entity instanceof Retireable) ? "retired" : "voided";
+					if (auditableProperty.equals(propertyNames[i])) {
+						boolean previousValue = false;
+						if (previousState != null && previousState[i] != null)
+							previousValue = Boolean.valueOf(previousState[i].toString());
+						
+						boolean currentValue = false;
+						if (currentState != null && currentState[i] != null)
+							currentValue = Boolean.valueOf(currentState[i].toString());
+						
+						if (previousValue != currentValue) {
+							if ("retired".equals(auditableProperty)) {
+								if (previousValue)
+									unretiredObjects.get().add(object);
+								else
+									retiredObjects.get().add(object);
+							} else {
+								if (previousValue)
+									unvoidedObjects.get().add(object);
+								else
+									voidedObjects.get().add(object);
+							}
+						}
+						
+						break;
+					}
+				}
+			}
 		}
 		
 		return false;
@@ -79,7 +124,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	 */
 	@Override
 	public void onDelete(Object entity, Serializable id, Object[] state, String[] propertyNames, Type[] types) {
-		if (OpenmrsObject.class.isAssignableFrom(entity.getClass())) {
+		if (entity instanceof OpenmrsObject) {
 			deletes.get().add((OpenmrsObject) entity);
 		}
 	}
@@ -93,9 +138,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 		if (collection != null) {
 			//If a collection element has been added/removed, fire an update event for the parent entity
 			Object owningObject = ((PersistentCollection) collection).getOwner();
-			if (OpenmrsObject.class.isAssignableFrom(owningObject.getClass())) {
-				//TODO Add removed element to deletes because they are actually deleted
-				//from the database but hibernate doesn't call onDelete() for them
+			if (owningObject instanceof OpenmrsObject) {
 				updates.get().add((OpenmrsObject) owningObject);
 			}
 		}
@@ -109,14 +152,26 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 		
 		try {
 			if (tx.wasCommitted()) {
-				for (Object delete : deletes.get()) {
-					Event.fireAction(Action.PURGED.name(), (OpenmrsObject) delete);
+				for (OpenmrsObject delete : deletes.get()) {
+					Event.fireAction(Action.PURGED.name(), delete);
 				}
-				for (Object insert : inserts.get()) {
-					Event.fireAction(Action.CREATED.name(), (OpenmrsObject) insert);
+				for (OpenmrsObject insert : inserts.get()) {
+					Event.fireAction(Action.CREATED.name(), insert);
 				}
-				for (Object update : updates.get()) {
-					Event.fireAction(Action.UPDATED.name(), (OpenmrsObject) update);
+				for (OpenmrsObject update : updates.get()) {
+					Event.fireAction(Action.UPDATED.name(), update);
+				}
+				for (OpenmrsObject retired : retiredObjects.get()) {
+					Event.fireAction(Action.RETIRED.name(), retired);
+				}
+				for (OpenmrsObject unretired : unretiredObjects.get()) {
+					Event.fireAction(Action.UNRETIRED.name(), unretired);
+				}
+				for (OpenmrsObject voided : voidedObjects.get()) {
+					Event.fireAction(Action.VOIDED.name(), voided);
+				}
+				for (OpenmrsObject unvoided : unvoidedObjects.get()) {
+					Event.fireAction(Action.UNVOIDED.name(), unvoided);
 				}
 			}
 		}
@@ -125,6 +180,10 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 			inserts.remove();
 			updates.remove();
 			deletes.remove();
+			retiredObjects.remove();
+			unretiredObjects.remove();
+			voidedObjects.remove();
+			unvoidedObjects.remove();
 		}
 	}
 }

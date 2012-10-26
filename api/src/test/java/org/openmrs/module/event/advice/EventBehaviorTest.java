@@ -11,15 +11,20 @@ import org.hibernate.proxy.HibernateProxy;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.internal.verification.Times;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.ConceptDescription;
 import org.openmrs.ConceptName;
+import org.openmrs.EncounterType;
 import org.openmrs.GlobalProperty;
 import org.openmrs.Patient;
+import org.openmrs.PatientIdentifier;
 import org.openmrs.User;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.ConceptService;
+import org.openmrs.api.EncounterService;
+import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.Event;
 import org.openmrs.event.EventEngine;
@@ -68,8 +73,8 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	public void shouldFireEventOnUpdatingProxiedObject() throws Exception {
 		Concept concept = Context.getConceptService().getConcept(4);
 		ConceptClass conceptClass = concept.getConceptClass();
-		final String newDescription = "new random version";
-		Assert.assertFalse(newDescription.equals(concept.getDescription()));
+		final String newDescription = "new random description";
+		Assert.assertFalse(newDescription.equals(conceptClass.getDescription()));
 		conceptClass.setDescription(newDescription);
 		Assert.assertTrue("Hibernate proxy", conceptClass instanceof HibernateProxy);
 		
@@ -128,8 +133,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * Is
-	 * 
 	 * @throws Exception
 	 */
 	@Test
@@ -147,18 +150,20 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	
 	@Test
 	@NotTransactional
-	public void shouldFireEventOnWhenAnElementIsAddedToAChildCollection() throws Exception {
+	public void shouldFireEventWhenAnElementIsAddedToAChildCollection() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(5089);
-		concept.addDescription(new ConceptDescription("new descr", Locale.ENGLISH));
+		ConceptDescription cd = new ConceptDescription("new descr", Locale.ENGLISH);
+		concept.addDescription(cd);
 		cs.saveConcept(concept);
 		
 		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), concept);
+		verify(eventEngine).fireAction(Event.Action.CREATED.name(), cd);
 	}
 	
 	@Test
 	@NotTransactional
-	public void shouldFireEventOnWhenAnElementIsRemovedFromAChildCollection() throws Exception {
+	public void shouldFireEventWhenAnElementIsRemovedFromAChildCollection() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(5497);
 		Assert.assertTrue(concept.getDescriptions().size() > 0);
@@ -166,5 +171,60 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		cs.saveConcept(concept);
 		
 		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), concept);
+	}
+	
+	@Test
+	@NotTransactional
+	public void shouldFireEventOnRetiringAnObject() throws Exception {
+		ConceptService cs = Context.getConceptService();
+		Concept concept = cs.getConcept(5497);
+		Assert.assertFalse(concept.isRetired());
+		//sanity check that in case we don't retire it, the action isn't fired
+		cs.saveConcept(concept);
+		verify(eventEngine, new Times(0)).fireAction(Event.Action.RETIRED.name(), concept);
+		
+		cs.retireConcept(concept, "testing");
+		verify(eventEngine).fireAction(Event.Action.RETIRED.name(), concept);
+	}
+	
+	@Test
+	@NotTransactional
+	public void shouldFireEventOnUnRetiringAnObject() throws Exception {
+		EncounterService es = Context.getEncounterService();
+		EncounterType eType = es.getEncounterType(6);
+		Assert.assertTrue(eType.isRetired());
+		es.saveEncounterType(eType);
+		verify(eventEngine, new Times(0)).fireAction(Event.Action.UNRETIRED.name(), eType);
+		
+		eType.setRetired(false);
+		es.saveEncounterType(eType);
+		verify(eventEngine).fireAction(Event.Action.UNRETIRED.name(), eType);
+	}
+	
+	@Test
+	@NotTransactional
+	public void shouldFireEventOnVoidingAnObject() throws Exception {
+		PatientService ps = Context.getPatientService();
+		PatientIdentifier pId = ps.getPatientIdentifier(1);
+		Assert.assertFalse(pId.isVoided());
+		ps.savePatientIdentifier(pId);
+		verify(eventEngine, new Times(0)).fireAction(Event.Action.VOIDED.name(), pId);
+		
+		ps.voidPatientIdentifier(pId, "testing");
+		verify(eventEngine).fireAction(Event.Action.VOIDED.name(), pId);
+	}
+	
+	@Test
+	@NotTransactional
+	public void shouldFireEventOnUnVoidingAnObject() throws Exception {
+		PatientService ps = Context.getPatientService();
+		PatientIdentifier pId = ps.getPatientIdentifier(6);
+		Assert.assertTrue(pId.isVoided());
+		ps.savePatientIdentifier(pId);
+		verify(eventEngine, new Times(0)).fireAction(Event.Action.UNVOIDED.name(), pId);
+		
+		pId.setVoided(false);
+		ps.savePatientIdentifier(pId);
+		verify(eventEngine).fireAction(Event.Action.UNVOIDED.name(), pId);
 	}
 }
