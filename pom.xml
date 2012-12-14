@@ -21,9 +21,9 @@
 	</organization>
 
 	<scm>
-		<connection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/trunk/</connection>
-		<developerConnection>scm:svn:https://svn.openmrs.org/openmrs-modules/event/trunk/</developerConnection>
-		<url>https://svn.openmrs.org/openmrs-modules/event/trunk/</url>
+		<connection>scm:git:https://github.com/openmrs/openmrs-module-event</connection>
+		<developerConnection>scm:git:https://github.com/openmrs/openmrs-module-event</developerConnection>
+		<url>https://github.com/openmrs/openmrs-module-event/</url>
 	</scm>
 
 	<modules>
