@@ -13,6 +13,7 @@
  */
 package org.openmrs.event;
 
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -28,10 +29,10 @@ import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.commons.lang.builder.ToStringBuilder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
+import org.openmrs.event.Event.Action;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -63,6 +64,32 @@ public class EventEngine {
 	 * @see Event#fireEvent(Destination, OpenmrsObject)
 	 */
 	public void fireEvent(final Destination dest, final OpenmrsObject object) {
+		EventMessage eventMessage = new EventMessage();
+		eventMessage.put("uuid", object.getUuid());
+		eventMessage.put("classname", object.getClass().getName());
+		eventMessage.put("action", getAction(dest));
+		
+		doFireEvent(dest, eventMessage);
+	}
+	
+	/**
+	 * @param action
+	 * @param clazz
+	 * @param eventMessage
+	 */
+	public void fireEvent(Action action, Class<?> clazz, EventMessage eventMessage) {
+		String ac = (action != null) ? action.toString() : null;
+		if (eventMessage.get("action") == null || eventMessage.get("action").toString().trim().isEmpty()) {
+			eventMessage.put("action", ac);
+		}
+		doFireEvent(getDestinationFor(clazz, ac), eventMessage);
+	}
+	
+	/**
+	 * @param dest
+	 * @param eventMessage
+	 */
+	private void doFireEvent(final Destination dest, final EventMessage eventMessage) {
 		
 		initializeIfNeeded();
 		
@@ -71,37 +98,18 @@ public class EventEngine {
 			@Override
 			public Message createMessage(Session session) throws JMSException {
 				if (log.isInfoEnabled())
-					log.info("Sending object data " + ToStringBuilder.reflectionToString(object));
+					log.info("Sending data " + eventMessage);
 				
 				MapMessage mapMessage = session.createMapMessage();
-				//mapMessage.setInt("id", object.getId());
-				mapMessage.setString("uuid", object.getUuid());
-				mapMessage.setString("classname", object.getClass().getName());
-				mapMessage.setString("action", getAction(dest));
-				
-				// TODO loop over properties here and add the "important" ones?
+				if (eventMessage != null) {
+					for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
+						mapMessage.setObject(entry.getKey(), entry.getValue());
+					}
+				}
 				
 				return mapMessage;
 			}
 		});
-		
-		//		// fire the event off to each listener
-		//		if (currentListeners != null) {
-		//			// TODO make this async in a separate thread? -- EVNT-5
-		//			for (EventListener listener : currentListeners) {
-		//				try {
-		//					if (log.isInfoEnabled())
-		//						log.info("firing event for: " + object
-		//								+ " because of action: " + action);
-		//
-		//					listener.handle(new ChangeEvent(action, object));
-		//				} catch (Throwable t) {
-		//					log.error("Error occurred while firing event: " + action
-		//							+ " for object: " + object + " for listener: "
-		//							+ listener);
-		//				}
-		//			}
-		//		}
 	}
 	
 	private synchronized void initializeIfNeeded() {
@@ -119,12 +127,19 @@ public class EventEngine {
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	public void subscribe(Class<? extends OpenmrsObject> openmrsObjectClass, String action, EventListener listener) {
+		subscribeTo(openmrsObjectClass, action, listener);
+	}
+	
+	/**
+	 * @see Event#subscribeTo(Class, String, EventListener)
+	 */
+	public void subscribeTo(Class<?> clazz, String action, EventListener listener) {
 		if (action != null) {
-			Destination dest = getDestination(openmrsObjectClass, action);
+			Destination dest = getDestinationFor(clazz, action);
 			subscribe(dest, listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				subscribe(getDestination(openmrsObjectClass, a.toString()), listener);
+				subscribe(getDestinationFor(clazz, a.toString()), listener);
 			}
 		}
 	}
@@ -133,11 +148,18 @@ public class EventEngine {
 	 * @see Event#unsubscribe(Class, org.openmrs.event.Event.Action, EventListener)
 	 */
 	public void unsubscribe(Class<? extends OpenmrsObject> openmrsObjectClass, Event.Action action, EventListener listener) {
+		unsubscribeFrom(openmrsObjectClass, action, listener);
+	}
+	
+	/**
+	 * @see Event#unsubscribeFrom(Class, Action, EventListener)
+	 */
+	public void unsubscribeFrom(Class<?> clazz, Event.Action action, EventListener listener) {
 		if (action != null) {
-			unsubscribe(getDestination(openmrsObjectClass, action.toString()), listener);
+			unsubscribe(getDestinationFor(clazz, action.toString()), listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				unsubscribe(getDestination(openmrsObjectClass, a.toString()), listener);
+				unsubscribe(getDestinationFor(clazz, a.toString()), listener);
 			}
 		}
 	}
@@ -146,11 +168,18 @@ public class EventEngine {
 	 * @see Event#getDestination(Class, String)
 	 */
 	public Destination getDestination(final Class<? extends OpenmrsObject> openmrsObjectClass, final String action) {
+		return getDestinationFor(openmrsObjectClass, action);
+	}
+	
+	/**
+	 * @see Event#getDestinationFor(Class, String)
+	 */
+	public Destination getDestinationFor(final Class<?> clazz, final String action) {
 		return new Topic() {
 			
 			@Override
 			public String getTopicName() throws JMSException {
-				return action.toString() + DELIMITER + openmrsObjectClass.getName();
+				return action.toString() + DELIMITER + clazz.getName();
 			}
 		};
 		

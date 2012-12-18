@@ -45,6 +45,19 @@ public class Event {
 	}
 	
 	/**
+	 * Fires an event for the specified class and action sending out the specified message
+	 * 
+	 * @param action
+	 * @param clazz
+	 * @param eventMessage
+	 * @see {@link Action}, {@link EventMessage}
+	 * @should fire an event for the action and class with the specified message
+	 */
+	public static void fireEvent(final Action action, Class<?> clazz, final EventMessage eventMessage) {
+		eventEngine.fireEvent(action, clazz, eventMessage);
+	}
+	
+	/**
 	 * Creates a subscription for the specified class and action, if action is null, the
 	 * subscription is created for all the actions
 	 * 
@@ -59,6 +72,18 @@ public class Event {
 	}
 	
 	/**
+	 * Creates a subscription for the specified class and action, if action is null, the
+	 * subscription is created for all the actions
+	 * 
+	 * @param clazz
+	 * @param action
+	 * @param listener
+	 */
+	public static void subscribeTo(Class<?> clazz, String action, EventListener listener) {
+		eventEngine.subscribeTo(clazz, action, listener);
+	}
+	
+	/**
 	 * Removes the subscription associated to the specified class and action, if action is null all
 	 * subscriptions associated to the class are dropped
 	 * 
@@ -68,8 +93,21 @@ public class Event {
 	 * @should unsubscribe only for the specified action
 	 * @should unsubscribe for every action if action is null
 	 */
-	public static void unsubscribe(Class<? extends OpenmrsObject> openmrsObjectClass, Event.Action action, EventListener listener) {
+	public static void unsubscribe(Class<? extends OpenmrsObject> openmrsObjectClass, Event.Action action,
+	                               EventListener listener) {
 		eventEngine.unsubscribe(openmrsObjectClass, action, listener);
+	}
+	
+	/**
+	 * Removes the subscription associated to the specified class and action, if action is null all
+	 * subscriptions associated to the class are dropped
+	 * 
+	 * @param clazz
+	 * @param action
+	 * @param listener
+	 */
+	public static void unsubscribeFrom(Class<?> clazz, Event.Action action, EventListener listener) {
+		eventEngine.unsubscribeFrom(clazz, action, listener);
 	}
 	
 	/**
@@ -106,7 +144,7 @@ public class Event {
 	}
 	
 	/**
-	 * Called by spring application context.  It needs to be non static, but it acts like static.
+	 * Called by spring application context. It needs to be non static, but it acts like static.
 	 * 
 	 * @param listenerToRegister
 	 * @should remove given subscriptions

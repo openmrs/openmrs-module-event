@@ -24,6 +24,7 @@ import junit.framework.Assert;
 import org.junit.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
+import org.openmrs.Location;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
@@ -332,5 +333,25 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		listener.waitForEvents();
 		
 		Assert.assertEquals(1, listener.getCreatedCount());
+	}
+	
+	/**
+	 * @see {@link Event#fireEvent(Action, Class, EventMessage)}
+	 */
+	@Test
+	public void fireEvent_shouldFireAnEventForTheActionAndClassWithTheSpecifiedMessage() throws Exception {
+		MockEventListener listener = new MockEventListener(3); //let's wait for 3 messages
+		Event.subscribe(Location.class, null, listener);//subscribes to all actions
+		
+		EventMessage eventMessage = new EventMessage();
+		eventMessage.put("city", "indianapolis");
+		eventMessage.put("zipCode", "46202");
+		Event.fireEvent(Action.UPDATED, Location.class, eventMessage);
+		
+		listener.waitForEvents();
+		
+		Assert.assertEquals(0, listener.getCreatedCount());
+		Assert.assertEquals(1, listener.getUpdatedCount());
+		Assert.assertEquals(0, listener.getDeletedCount());
 	}
 }
