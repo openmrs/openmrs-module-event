@@ -17,7 +17,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 
 /**
- * This class encapsulates data about a message object to be sent to the message queue
+ * This class encapsulates data to be sent to the message queue
  */
 public class EventMessage extends HashMap<String, Serializable> {
 	

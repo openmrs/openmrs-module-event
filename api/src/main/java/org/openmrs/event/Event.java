@@ -165,6 +165,17 @@ public class Event {
 	}
 	
 	/**
+	 * Returns destination for the given class and action.
+	 * 
+	 * @param clazz
+	 * @param action
+	 * @return the destination
+	 */
+	public static Destination getDestinationFor(final Class<?> clazz, final String action) {
+		return eventEngine.getDestinationFor(clazz, action);
+	}
+	
+	/**
 	 * Closes the underlying shared connection which will close the broker too under the hood
 	 */
 	public static void shutdown() {
