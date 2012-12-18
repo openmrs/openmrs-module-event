@@ -345,7 +345,6 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		
 		EventMessage eventMessage = new EventMessage();
 		eventMessage.put("city", "indianapolis");
-		eventMessage.put("zipCode", "46202");
 		Event.fireEvent(Action.UPDATED, Location.class, eventMessage);
 		
 		listener.waitForEvents();

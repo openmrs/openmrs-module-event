@@ -55,7 +55,7 @@ public class EventEngine {
 	/**
 	 * @see Event#fireAction(String, OpenmrsObject)
 	 */
-	public void fireAction(String action, final OpenmrsObject object) {
+	public void fireAction(String action, final Object object) {
 		Destination key = getDestination(object.getClass(), action);
 		fireEvent(key, object);
 	}
@@ -63,9 +63,11 @@ public class EventEngine {
 	/**
 	 * @see Event#fireEvent(Destination, OpenmrsObject)
 	 */
-	public void fireEvent(final Destination dest, final OpenmrsObject object) {
+	public void fireEvent(final Destination dest, final Object object) {
 		EventMessage eventMessage = new EventMessage();
-		eventMessage.put("uuid", object.getUuid());
+		if (object instanceof OpenmrsObject) {
+			eventMessage.put("uuid", ((OpenmrsObject) object).getUuid());
+		}
 		eventMessage.put("classname", object.getClass().getName());
 		eventMessage.put("action", getAction(dest));
 		
@@ -82,7 +84,7 @@ public class EventEngine {
 		if (eventMessage.get("action") == null || eventMessage.get("action").toString().trim().isEmpty()) {
 			eventMessage.put("action", ac);
 		}
-		doFireEvent(getDestinationFor(clazz, ac), eventMessage);
+		doFireEvent(getDestination(clazz, ac), eventMessage);
 	}
 	
 	/**
@@ -126,20 +128,13 @@ public class EventEngine {
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
-	public void subscribe(Class<? extends OpenmrsObject> openmrsObjectClass, String action, EventListener listener) {
-		subscribeTo(openmrsObjectClass, action, listener);
-	}
-	
-	/**
-	 * @see Event#subscribeTo(Class, String, EventListener)
-	 */
-	public void subscribeTo(Class<?> clazz, String action, EventListener listener) {
+	public void subscribe(Class<?> clazz, String action, EventListener listener) {
 		if (action != null) {
-			Destination dest = getDestinationFor(clazz, action);
+			Destination dest = getDestination(clazz, action);
 			subscribe(dest, listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				subscribe(getDestinationFor(clazz, a.toString()), listener);
+				subscribe(getDestination(clazz, a.toString()), listener);
 			}
 		}
 	}
@@ -147,19 +142,12 @@ public class EventEngine {
 	/**
 	 * @see Event#unsubscribe(Class, org.openmrs.event.Event.Action, EventListener)
 	 */
-	public void unsubscribe(Class<? extends OpenmrsObject> openmrsObjectClass, Event.Action action, EventListener listener) {
-		unsubscribeFrom(openmrsObjectClass, action, listener);
-	}
-	
-	/**
-	 * @see Event#unsubscribeFrom(Class, Action, EventListener)
-	 */
-	public void unsubscribeFrom(Class<?> clazz, Event.Action action, EventListener listener) {
+	public void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
 		if (action != null) {
-			unsubscribe(getDestinationFor(clazz, action.toString()), listener);
+			unsubscribe(getDestination(clazz, action.toString()), listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				unsubscribe(getDestinationFor(clazz, a.toString()), listener);
+				unsubscribe(getDestination(clazz, a.toString()), listener);
 			}
 		}
 	}
@@ -167,14 +155,7 @@ public class EventEngine {
 	/**
 	 * @see Event#getDestination(Class, String)
 	 */
-	public Destination getDestination(final Class<? extends OpenmrsObject> openmrsObjectClass, final String action) {
-		return getDestinationFor(openmrsObjectClass, action);
-	}
-	
-	/**
-	 * @see Event#getDestinationFor(Class, String)
-	 */
-	public Destination getDestinationFor(final Class<?> clazz, final String action) {
+	public Destination getDestination(final Class<?> clazz, final String action) {
 		return new Topic() {
 			
 			@Override
@@ -182,7 +163,6 @@ public class EventEngine {
 				return action.toString() + DELIMITER + clazz.getName();
 			}
 		};
-		
 	}
 	
 	/**

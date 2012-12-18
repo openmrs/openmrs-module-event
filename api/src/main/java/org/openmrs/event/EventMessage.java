@@ -14,12 +14,12 @@
 package org.openmrs.event;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 
 /**
  * This class encapsulates data to be sent to the message queue
  */
-public class EventMessage extends HashMap<String, Serializable> {
+public class EventMessage extends LinkedHashMap<String, Serializable> {
 	
 	private static final long serialVersionUID = 1L;
 	
