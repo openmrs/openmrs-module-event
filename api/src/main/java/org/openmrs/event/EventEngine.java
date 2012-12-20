@@ -82,7 +82,7 @@ public class EventEngine {
 		if (StringUtils.isBlank(topicName)) {
 			throw new APIException("Topic name cannot be null or blank");
 		}
-		doFireEvent(getDestinationFor(topicName), eventMessage);
+		doFireEvent(getDestination(topicName), eventMessage);
 	}
 	
 	/**
@@ -138,13 +138,13 @@ public class EventEngine {
 	}
 	
 	/**
-	 * @see Event#subscribeTo(String, EventListener)
+	 * @see Event#subscribe(String, EventListener)
 	 */
-	public void subscribeTo(String topicName, EventListener listener) {
+	public void subscribe(String topicName, EventListener listener) {
 		if (StringUtils.isBlank(topicName)) {
 			throw new APIException("Topic name cannot be null or blank");
 		}
-		subscribe(getDestinationFor(topicName), listener);
+		subscribe(getDestination(topicName), listener);
 	}
 	
 	/**
@@ -161,26 +161,26 @@ public class EventEngine {
 	}
 	
 	/**
-	 * @see Event#unsubscribeForm(String, EventListener)
+	 * @see Event#unsubscribe(String, EventListener)
 	 */
-	public void unsubscribeForm(String topicName, EventListener listener) {
+	public void unsubscribe(String topicName, EventListener listener) {
 		if (StringUtils.isBlank(topicName)) {
 			throw new APIException("Topic name cannot be null or blank");
 		}
-		unsubscribe(getDestinationFor(topicName), listener);
+		unsubscribe(getDestination(topicName), listener);
 	}
 	
 	/**
 	 * @see Event#getDestination(Class, String)
 	 */
 	public Destination getDestination(final Class<?> clazz, final String action) {
-		return getDestinationFor(action.toString() + DELIMITER + clazz.getName());
+		return getDestination(action.toString() + DELIMITER + clazz.getName());
 	}
 	
 	/**
-	 * @see Event#getDestinationFor(String)
+	 * @see Event#getDestination(String)
 	 */
-	public Destination getDestinationFor(final String topicName) {
+	public Destination getDestination(final String topicName) {
 		return new Topic() {
 			
 			@Override

@@ -74,8 +74,8 @@ public class Event {
 	 * @param topicName
 	 * @param listener
 	 */
-	public static void subscribeTo(String topicName, EventListener listener) {
-		eventEngine.subscribeTo(topicName, listener);
+	public static void subscribe(String topicName, EventListener listener) {
+		eventEngine.subscribe(topicName, listener);
 	}
 	
 	/**
@@ -98,8 +98,8 @@ public class Event {
 	 * @param topicName
 	 * @param listener
 	 */
-	public static void unsubscribeForm(String topicName, EventListener listener) {
-		eventEngine.unsubscribeForm(topicName, listener);
+	public static void unsubscribe(String topicName, EventListener listener) {
+		eventEngine.unsubscribe(topicName, listener);
 	}
 	
 	/**
@@ -163,7 +163,7 @@ public class Event {
 	 * @return
 	 */
 	public static Destination getDestinationFor(String topicName) {
-		return eventEngine.getDestinationFor(topicName);
+		return eventEngine.getDestination(topicName);
 	}
 	
 	/**

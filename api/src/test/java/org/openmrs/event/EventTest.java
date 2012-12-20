@@ -341,7 +341,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	public void fireEvent_shouldFireAnEventForTheActionAndClassWithTheSpecifiedMessage() throws Exception {
 		EventMessageListener listener = new EventMessageListener(1);
 		final String dest = "org.openmrs.test";
-		Event.subscribeTo(dest, listener);
+		Event.subscribe(dest, listener);
 		
 		final String city = "indianapolis";
 		final String state = "indiana";
