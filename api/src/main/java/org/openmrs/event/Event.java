@@ -43,16 +43,15 @@ public class Event {
 	}
 	
 	/**
-	 * Fires an event for the specified class and action sending out the specified message
+	 * Fires an event to the specified topic
 	 * 
-	 * @param action
-	 * @param clazz
+	 * @param topicName
 	 * @param eventMessage
 	 * @see {@link Action}, {@link EventMessage}
 	 * @should fire an event for the action and class with the specified message
 	 */
-	public static void fireEvent(final Action action, Class<?> clazz, final EventMessage eventMessage) {
-		eventEngine.fireEvent(action, clazz, eventMessage);
+	public static void fireEvent(String topicName, EventMessage eventMessage) {
+		eventEngine.fireEvent(topicName, eventMessage);
 	}
 	
 	/**
@@ -70,6 +69,16 @@ public class Event {
 	}
 	
 	/**
+	 * Creates a subscription to the topic with the specified name
+	 * 
+	 * @param topicName
+	 * @param listener
+	 */
+	public static void subscribeTo(String topicName, EventListener listener) {
+		eventEngine.subscribeTo(topicName, listener);
+	}
+	
+	/**
 	 * Removes the subscription associated to the specified class and action, if action is null all
 	 * subscriptions associated to the class are dropped
 	 * 
@@ -81,6 +90,16 @@ public class Event {
 	 */
 	public static void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
 		eventEngine.unsubscribe(clazz, action, listener);
+	}
+	
+	/**
+	 * Removes the subscription from the topic with the specified name
+	 * 
+	 * @param topicName
+	 * @param listener
+	 */
+	public static void unsubscribeForm(String topicName, EventListener listener) {
+		eventEngine.unsubscribeForm(topicName, listener);
 	}
 	
 	/**
@@ -135,6 +154,16 @@ public class Event {
 	 */
 	public static Destination getDestination(final Class<?> clazz, final String action) {
 		return eventEngine.getDestination(clazz, action);
+	}
+	
+	/**
+	 * Returns destination for the given topic
+	 * 
+	 * @param topicName
+	 * @return
+	 */
+	public static Destination getDestinationFor(String topicName) {
+		return eventEngine.getDestinationFor(topicName);
 	}
 	
 	/**

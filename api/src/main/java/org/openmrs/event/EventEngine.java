@@ -29,10 +29,11 @@ import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
-import org.openmrs.event.Event.Action;
+import org.openmrs.api.APIException;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -75,16 +76,13 @@ public class EventEngine {
 	}
 	
 	/**
-	 * @param action
-	 * @param clazz
-	 * @param eventMessage
+	 * @see Event#fireEvent(String, EventMessage)
 	 */
-	public void fireEvent(Action action, Class<?> clazz, EventMessage eventMessage) {
-		String ac = (action != null) ? action.toString() : null;
-		if (eventMessage.get("action") == null || eventMessage.get("action").toString().trim().isEmpty()) {
-			eventMessage.put("action", ac);
+	public void fireEvent(String topicName, EventMessage eventMessage) {
+		if (StringUtils.isBlank(topicName)) {
+			throw new APIException("Topic name cannot be null or blank");
 		}
-		doFireEvent(getDestination(clazz, ac), eventMessage);
+		doFireEvent(getDestinationFor(topicName), eventMessage);
 	}
 	
 	/**
@@ -140,6 +138,16 @@ public class EventEngine {
 	}
 	
 	/**
+	 * @see Event#subscribeTo(String, EventListener)
+	 */
+	public void subscribeTo(String topicName, EventListener listener) {
+		if (StringUtils.isBlank(topicName)) {
+			throw new APIException("Topic name cannot be null or blank");
+		}
+		subscribe(getDestinationFor(topicName), listener);
+	}
+	
+	/**
 	 * @see Event#unsubscribe(Class, org.openmrs.event.Event.Action, EventListener)
 	 */
 	public void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
@@ -153,14 +161,31 @@ public class EventEngine {
 	}
 	
 	/**
+	 * @see Event#unsubscribeForm(String, EventListener)
+	 */
+	public void unsubscribeForm(String topicName, EventListener listener) {
+		if (StringUtils.isBlank(topicName)) {
+			throw new APIException("Topic name cannot be null or blank");
+		}
+		unsubscribe(getDestinationFor(topicName), listener);
+	}
+	
+	/**
 	 * @see Event#getDestination(Class, String)
 	 */
 	public Destination getDestination(final Class<?> clazz, final String action) {
+		return getDestinationFor(action.toString() + DELIMITER + clazz.getName());
+	}
+	
+	/**
+	 * @see Event#getDestinationFor(String)
+	 */
+	public Destination getDestinationFor(final String topicName) {
 		return new Topic() {
 			
 			@Override
 			public String getTopicName() throws JMSException {
-				return action.toString() + DELIMITER + clazz.getName();
+				return topicName;
 			}
 		};
 	}
