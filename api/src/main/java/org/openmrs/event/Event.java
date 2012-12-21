@@ -16,8 +16,6 @@ package org.openmrs.event;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 
-import org.openmrs.OpenmrsObject;
-
 /**
  * Allows listeners to subscribe to possible events. When the event occurs, the listener is called.
  */
@@ -36,40 +34,72 @@ public class Event {
 	 * @param action
 	 * @param object
 	 */
-	public static void fireAction(String action, final OpenmrsObject object) {
+	public static void fireAction(String action, final Object object) {
 		eventEngine.fireAction(action, object);
 	}
 	
-	public static void fireEvent(final Destination dest, final OpenmrsObject object) {
+	public static void fireEvent(final Destination dest, final Object object) {
 		eventEngine.fireEvent(dest, object);
+	}
+	
+	/**
+	 * Fires an event to the specified topic
+	 * 
+	 * @param topicName
+	 * @param eventMessage
+	 * @see {@link Action}, {@link EventMessage}
+	 * @should fire an event for the action and class with the specified message
+	 */
+	public static void fireEvent(String topicName, EventMessage eventMessage) {
+		eventEngine.fireEvent(topicName, eventMessage);
 	}
 	
 	/**
 	 * Creates a subscription for the specified class and action, if action is null, the
 	 * subscription is created for all the actions
 	 * 
-	 * @param openmrsObjectClass
+	 * @param clazz
 	 * @param action
 	 * @should subscribe only to the specified action
 	 * @should subscribe to every action if action is null
 	 * @should not subscribe duplicate event listeners
 	 */
-	public static void subscribe(Class<? extends OpenmrsObject> openmrsObjectClass, String action, EventListener listener) {
-		eventEngine.subscribe(openmrsObjectClass, action, listener);
+	public static void subscribe(Class<?> clazz, String action, EventListener listener) {
+		eventEngine.subscribe(clazz, action, listener);
+	}
+	
+	/**
+	 * Creates a subscription to the topic with the specified name
+	 * 
+	 * @param topicName
+	 * @param listener
+	 */
+	public static void subscribe(String topicName, EventListener listener) {
+		eventEngine.subscribe(topicName, listener);
 	}
 	
 	/**
 	 * Removes the subscription associated to the specified class and action, if action is null all
 	 * subscriptions associated to the class are dropped
 	 * 
-	 * @param openmrsObjectClass if null, all objects are unsubscribed
+	 * @param clazz if null, all objects are unsubscribed
 	 * @param action if null, all actions are unsubscribed
 	 * @param listener the given listener to unsubscribe
 	 * @should unsubscribe only for the specified action
 	 * @should unsubscribe for every action if action is null
 	 */
-	public static void unsubscribe(Class<? extends OpenmrsObject> openmrsObjectClass, Event.Action action, EventListener listener) {
-		eventEngine.unsubscribe(openmrsObjectClass, action, listener);
+	public static void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
+		eventEngine.unsubscribe(clazz, action, listener);
+	}
+	
+	/**
+	 * Removes the subscription from the topic with the specified name
+	 * 
+	 * @param topicName
+	 * @param listener
+	 */
+	public static void unsubscribe(String topicName, EventListener listener) {
+		eventEngine.unsubscribe(topicName, listener);
 	}
 	
 	/**
@@ -106,7 +136,7 @@ public class Event {
 	}
 	
 	/**
-	 * Called by spring application context.  It needs to be non static, but it acts like static.
+	 * Called by spring application context. It needs to be non static, but it acts like static.
 	 * 
 	 * @param listenerToRegister
 	 * @should remove given subscriptions
@@ -118,12 +148,22 @@ public class Event {
 	/**
 	 * Returns destination for the given class and action.
 	 * 
-	 * @param openmrsObjectClass
+	 * @param clazz
 	 * @param action
 	 * @return the destination
 	 */
-	public static Destination getDestination(final Class<? extends OpenmrsObject> openmrsObjectClass, final String action) {
-		return eventEngine.getDestination(openmrsObjectClass, action);
+	public static Destination getDestination(final Class<?> clazz, final String action) {
+		return eventEngine.getDestination(clazz, action);
+	}
+	
+	/**
+	 * Returns destination for the given topic
+	 * 
+	 * @param topicName
+	 * @return
+	 */
+	public static Destination getDestinationFor(String topicName) {
+		return eventEngine.getDestination(topicName);
 	}
 	
 	/**

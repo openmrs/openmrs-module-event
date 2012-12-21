@@ -333,4 +333,27 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		
 		Assert.assertEquals(1, listener.getCreatedCount());
 	}
+	
+	/**
+	 * @see {@link Event#fireEvent(Action, Class, EventMessage)}
+	 */
+	@Test
+	public void fireEvent_shouldFireAnEventForTheActionAndClassWithTheSpecifiedMessage() throws Exception {
+		EventMessageListener listener = new EventMessageListener(1);
+		final String dest = "org.openmrs.test";
+		Event.subscribe(dest, listener);
+		
+		final String city = "indianapolis";
+		final String state = "indiana";
+		EventMessage eventMessage = new EventMessage();
+		eventMessage.put("city", city);
+		eventMessage.put("state", state);
+		
+		Event.fireEvent(dest, eventMessage);
+		
+		listener.waitForEvents();
+		
+		Assert.assertEquals(city, listener.getCity());
+		Assert.assertEquals(state, listener.getState());
+	}
 }
