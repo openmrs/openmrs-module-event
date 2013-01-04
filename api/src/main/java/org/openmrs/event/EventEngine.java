@@ -13,8 +13,10 @@
  */
 package org.openmrs.event;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.jms.Destination;
@@ -127,6 +129,24 @@ public class EventEngine {
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	public void subscribe(Class<?> clazz, String action, EventListener listener) {
+		try {
+			List<Class<?>> classes = OpenmrsClassScanner.getInstance().getClasses(clazz, true);
+			for (Class<?> cls : classes) {
+				subscribeToClass(cls, action, listener);
+			}
+		}
+		catch (IOException ex) {
+			log.error("failed to scan subclasses for: " + clazz, ex);
+			
+			//Just forget about subclasses and subscribe only the given class.
+			subscribeToClass(clazz, action, listener);
+		}
+	}
+	
+	/**
+	 * @see Event#subscribeToClass(Class, String, EventListener)
+	 */
+	public void subscribeToClass(Class<?> clazz, String action, EventListener listener) {		
 		if (action != null) {
 			Destination dest = getDestination(clazz, action);
 			subscribe(dest, listener);

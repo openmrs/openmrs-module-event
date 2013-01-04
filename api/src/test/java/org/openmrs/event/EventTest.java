@@ -23,7 +23,9 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDatatype;
 import org.openmrs.ConceptName;
+import org.openmrs.ConceptNumeric;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
@@ -355,5 +357,26 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		
 		Assert.assertEquals(city, listener.getCity());
 		Assert.assertEquals(state, listener.getState());
+	}
+	
+ 	@Test
+ 	@NotTransactional
+	@Verifies(value = "should subscribe to creation of numberic concepts", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
+	public void subscribe_shouldSubscribeToNumbericConcepts() throws Exception {
+ 		ConceptService cs = Context.getConceptService();
+		MockEventListener listener = new MockEventListener(1); //let's wait for 1 message
+		Event.subscribe(Concept.class, Action.CREATED.toString(), listener);
+		
+		ConceptNumeric numericConcept = new ConceptNumeric();
+		ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+		numericConcept.addName(name);
+		numericConcept.setDatatype(new ConceptDatatype(1));
+		numericConcept.setHiAbsolute(50.0);
+
+		cs.saveConcept(numericConcept);
+		
+		listener.waitForEvents();
+		
+		Assert.assertEquals(1, listener.getCreatedCount());
 	}
 }

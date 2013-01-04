@@ -55,7 +55,7 @@ public class Event {
 	}
 	
 	/**
-	 * Creates a subscription for the specified class and action, if action is null, the
+	 * Creates a subscription for the specified action and class with all its subclasses. if action is null, the
 	 * subscription is created for all the actions
 	 * 
 	 * @param clazz
@@ -65,6 +65,20 @@ public class Event {
 	 * @should not subscribe duplicate event listeners
 	 */
 	public static void subscribe(Class<?> clazz, String action, EventListener listener) {
+		eventEngine.subscribe(clazz, action, listener);
+	}
+	
+	/**
+	 * Creates a subscription for the specified action and class without its subclasses. if action is null, the
+	 * subscription is created for all the actions
+	 * 
+	 * @param clazz
+	 * @param action
+	 * @should subscribe only to the specified action
+	 * @should subscribe to every action if action is null
+	 * @should not subscribe duplicate event listeners
+	 */
+	public static void subscribeToClass(Class<?> clazz, String action, EventListener listener) {
 		eventEngine.subscribe(clazz, action, listener);
 	}
 	
