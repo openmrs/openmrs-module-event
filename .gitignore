@@ -4,6 +4,8 @@
 .classpath
 target
 activemq-data
+*.iml
+*.idea
 
 # Package Files #
 *.jar
