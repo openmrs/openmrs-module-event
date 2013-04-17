@@ -23,5 +23,31 @@
 		</property>
 		<!-- default properties must be set in the hibernate.default.properties -->
 	</bean>
-	
+
+    <!-- Add mock services for nested transaction testing-->
+    <bean id="mockNestedService" class="${project.parent.groupId}.${project.parent.artifactId}.MockNestedServiceImpl"></bean>
+
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>${project.parent.groupId}.${project.parent.artifactId}.MockNestedService</value>
+                <bean
+                        class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+                    <property name="transactionManager">
+                        <ref bean="transactionManager"/>
+                    </property>
+                    <property name="target">
+                        <ref bean="mockNestedService" />
+                    </property>
+                    <property name="preInterceptors">
+                        <ref bean="serviceInterceptors"/>
+                    </property>
+                    <property name="transactionAttributeSource">
+                        <ref bean="transactionAttributeSource"/>
+                    </property>
+                </bean>
+            </list>
+        </property>
+    </bean>
+
 </beans>
