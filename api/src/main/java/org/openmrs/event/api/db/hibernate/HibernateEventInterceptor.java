@@ -51,7 +51,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	@Override
 	public void afterTransactionBegin(Transaction tx) {
 
-        initializeIfNecessary();
+        initializeStackIfNecessary();
 
 		inserts.get().push(new HashSet<OpenmrsObject>());
 		updates.get().push(new HashSet<OpenmrsObject>());
@@ -190,11 +190,12 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 			unretiredObjects.get().pop();
 			voidedObjects.get().pop();
 			unvoidedObjects.get().pop();
+
+            removeStackIfEmpty();
 		}
 	}
 
-    private void initializeIfNecessary() {
-
+    private void initializeStackIfNecessary() {
         if (inserts.get() == null) {
             inserts.set(new Stack<HashSet<OpenmrsObject>>());
         }
@@ -215,6 +216,30 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
         }
         if (unvoidedObjects.get() == null) {
             unvoidedObjects.set(new Stack<HashSet<OpenmrsObject>>());
+        }
+    }
+
+    private void removeStackIfEmpty() {
+        if (inserts.get().empty()) {
+            inserts.set(null);
+        }
+        if (updates.get().empty()) {
+            updates.set(null);
+        }
+        if (deletes.get().empty()) {
+            deletes.set(null);
+        }
+        if (retiredObjects.get().empty()) {
+            retiredObjects.set(null);
+        }
+        if (unretiredObjects.get().empty()) {
+            unretiredObjects.set(null);
+        }
+        if (voidedObjects.get().empty()) {
+            voidedObjects.set(null);
+        }
+        if (unvoidedObjects.get().empty()) {
+            unvoidedObjects.set(null);
         }
     }
 }
