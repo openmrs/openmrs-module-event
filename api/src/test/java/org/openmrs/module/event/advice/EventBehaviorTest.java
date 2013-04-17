@@ -10,6 +10,7 @@ import java.util.Locale;
 
 import org.aopalliance.intercept.MethodInvocation;
 import org.hibernate.proxy.HibernateProxy;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -46,7 +47,13 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		eventEngine = spy(EventEngineUtil.getEventEngine());
 		EventEngineUtil.setEventEngine(eventEngine);
 	}
-	
+
+    @After
+    public void afterTest() {
+        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
+    }
+
+
 	@Test
 	@NotTransactional
 	public void shouldFireEventOnCreate() throws Exception {
@@ -235,8 +242,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     @NotTransactional
     public void shouldFireEventsOnNestedTransactions() throws Exception {
 
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
-
         Concept concept = new Concept();
         ConceptName name = new ConceptName("Name", Locale.ENGLISH);
         concept.addName(name);
@@ -252,8 +257,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     @Test
     @NotTransactional
     public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
-
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
 
         Concept concept = new Concept();
         ConceptName name = new ConceptName("Name", Locale.ENGLISH);
@@ -275,8 +278,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     @NotTransactional
     public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
 
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
-
         Concept concept = new Concept();
         ConceptName name = new ConceptName("Name", Locale.ENGLISH);
         concept.addName(name);
@@ -295,8 +296,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     @Test
     @NotTransactional
     public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
-
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
 
         Concept concept = new Concept();
         ConceptName name = new ConceptName("Name", Locale.ENGLISH);
