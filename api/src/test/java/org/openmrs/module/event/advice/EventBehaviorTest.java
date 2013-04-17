@@ -1,5 +1,7 @@
 package org.openmrs.module.event.advice;
 
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 
@@ -30,6 +32,7 @@ import org.openmrs.event.Event;
 import org.openmrs.event.EventEngine;
 import org.openmrs.event.EventEngineUtil;
 import org.openmrs.event.MockEventListener;
+import org.openmrs.event.MockNestedService;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.test.annotation.NotTransactional;
 
@@ -227,4 +230,87 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		ps.savePatientIdentifier(pId);
 		verify(eventEngine).fireAction(Event.Action.UNVOIDED.name(), pId);
 	}
+
+    @Test
+    @NotTransactional
+    public void shouldFireEventsOnNestedTransactions() throws Exception {
+
+        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
+
+        Concept concept = new Concept();
+        ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+        concept.addName(name);
+
+        Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
+
+        Patient patient = Context.getPatientService().getPatient(2);
+        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
+
+    }
+
+    @Test
+    @NotTransactional
+    public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
+
+        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
+
+        Concept concept = new Concept();
+        ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+        concept.addName(name);
+
+        try {
+            Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
+        }
+        catch (Exception e) {
+        }
+
+        Patient patient = Context.getPatientService().getPatient(2);
+        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
+        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
+
+    }
+
+    @Test
+    @NotTransactional
+    public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
+
+        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
+
+        Concept concept = new Concept();
+        ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+        concept.addName(name);
+
+        try {
+            Context.getService(MockNestedService.class).outerTransaction(concept, true, false);
+        }
+        catch (Exception e) {
+        }
+
+        Patient patient = Context.getPatientService().getPatient(2);
+        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
+    }
+
+    @Test
+    @NotTransactional
+    public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
+
+        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
+
+        Concept concept = new Concept();
+        ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+        concept.addName(name);
+
+        try {
+            Context.getService(MockNestedService.class).outerTransaction(concept, true, true);
+        }
+        catch (Exception e) {
+        }
+
+        Patient patient = Context.getPatientService().getPatient(2);
+        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
+        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
+    }
+
 }
