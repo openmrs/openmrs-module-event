@@ -221,25 +221,25 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 
     private void removeStackIfEmpty() {
         if (inserts.get().empty()) {
-            inserts.set(null);
+            inserts.remove();
         }
         if (updates.get().empty()) {
-            updates.set(null);
+            updates.remove();
         }
         if (deletes.get().empty()) {
-            deletes.set(null);
+            deletes.remove();
         }
         if (retiredObjects.get().empty()) {
-            retiredObjects.set(null);
+            retiredObjects.remove();
         }
         if (unretiredObjects.get().empty()) {
-            unretiredObjects.set(null);
+            unretiredObjects.remove();
         }
         if (voidedObjects.get().empty()) {
-            voidedObjects.set(null);
+            voidedObjects.remove();
         }
         if (unvoidedObjects.get().empty()) {
-            unvoidedObjects.set(null);
+            unvoidedObjects.remove();
         }
     }
 }
