@@ -34,7 +34,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.APIException;
-import org.openmrs.util.OpenmrsUtil;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -116,9 +115,7 @@ public class EventEngine {
 	private synchronized void initializeIfNeeded() {
 		if (jmsTemplate == null) {
 			log.info("creating connection factory");
-			String dataDirectory = OpenmrsUtil.getApplicationDataDirectory() + "activemq-data";
-			String brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + dataDirectory;
-			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=true");
 			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
 			jmsTemplate = new JmsTemplate(connectionFactory);
 		} else {
