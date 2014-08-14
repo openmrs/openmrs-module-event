@@ -12,11 +12,13 @@
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
 package org.openmrs.event;
+
 import org.apache.commons.io.FileUtils;
 import org.openmrs.GlobalProperty;
 import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
 import org.openmrs.api.AdministrationService;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -43,7 +45,6 @@ import org.openmrs.api.APIException;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
-
 
 /**
  * Used by {@link Event}.
@@ -119,29 +120,30 @@ public class EventEngine {
 		});
 	}
 
-    private synchronized void initializeIfNeeded() {
-        AdministrationService as=Context.getAdministrationService();
-        if (jmsTemplate == null) {
-            GlobalProperty ActiveMQDirectoryProperty=as.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
-            log.info("creating connection factory");
-            String brokerURL;
-            if ( ActiveMQDirectoryProperty!=null) {
-                String activeMQDataDirectory = ActiveMQDirectoryProperty.getPropertyValue();
-                String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/"+activeMQDataDirectory;
-                brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + absolutePath;
-            } else {
-                brokerURL = "vm://localhost?broker.persistent=true";
-            }
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
+	private synchronized void initializeIfNeeded() {
+		AdministrationService as = Context.getAdministrationService();
+		if (jmsTemplate == null) {
+			GlobalProperty ActiveMQDirectoryProperty = as
+					.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
+			log.info("creating connection factory");
+			String brokerURL;
+			if (ActiveMQDirectoryProperty != null) {
+				String activeMQDataDirectory = ActiveMQDirectoryProperty.getPropertyValue();
+				String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + activeMQDataDirectory;
+				brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + absolutePath;
+			} else {
+				brokerURL = "vm://localhost?broker.persistent=true";
+			}
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
 
-            connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
-            jmsTemplate = new JmsTemplate(connectionFactory);
-        } else {
-            log.trace("messageListener already defined");
-        }
-    }
+			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
+			jmsTemplate = new JmsTemplate(connectionFactory);
+		} else {
+			log.trace("messageListener already defined");
+		}
+	}
 
-    /**
+	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	public void subscribe(Class<?> clazz, String action, EventListener listener) {
@@ -154,7 +156,7 @@ public class EventEngine {
 			}
 		}
 	}
-	
+
 	/**
 	 * @see Event#subscribe(String, EventListener)
 	 */
@@ -164,7 +166,7 @@ public class EventEngine {
 		}
 		subscribe(getDestination(topicName), listener);
 	}
-	
+
 	/**
 	 * @see Event#unsubscribe(Class, org.openmrs.event.Event.Action, EventListener)
 	 */
@@ -177,7 +179,7 @@ public class EventEngine {
 			}
 		}
 	}
-	
+
 	/**
 	 * @see Event#unsubscribe(String, EventListener)
 	 */
@@ -187,64 +189,64 @@ public class EventEngine {
 		}
 		unsubscribe(getDestination(topicName), listener);
 	}
-	
+
 	/**
 	 * @see Event#getDestination(Class, String)
 	 */
 	public Destination getDestination(final Class<?> clazz, final String action) {
 		return getDestination(action.toString() + DELIMITER + clazz.getName());
 	}
-	
+
 	/**
 	 * @see Event#getDestination(String)
 	 */
 	public Destination getDestination(final String topicName) {
 		return new Topic() {
-			
+
 			@Override
 			public String getTopicName() throws JMSException {
 				return topicName;
 			}
 		};
 	}
-	
+
 	/**
 	 * @see Event#subscribe(Destination, EventListener)
 	 */
 	public void subscribe(Destination destination, final EventListener listenerToRegister) {
-		
+
 		initializeIfNeeded();
-		
+
 		TopicConnection conn;
 		Topic topic = (Topic) destination;
-		
+
 		try {
 			conn = (TopicConnection) jmsTemplate.getConnectionFactory().createConnection();
 			TopicSession session = conn.createTopicSession(false, TopicSession.AUTO_ACKNOWLEDGE);
 			TopicSubscriber subscriber = session.createSubscriber(topic);
 			subscriber.setMessageListener(new MessageListener() {
-				
+
 				@Override
 				public void onMessage(Message message) {
 					listenerToRegister.onMessage(message);
 				}
 			});
-			
+
 			//Check if this is a duplicate and remove it
 			String key = topic.getTopicName() + DELIMITER + listenerToRegister.getClass().getName();
 			if (subscribers.containsKey(key)) {
 				unsubscribe(destination, listenerToRegister);
 			}
-			
+
 			subscribers.put(key, subscriber);
 			conn.start();
-			
+
 		}
 		catch (JMSException e) {
 			// TODO Auto-generated catch block. Do something smarter here.
 			e.printStackTrace();
 		}
-		
+
 		//		List<EventListener> currentListeners = listeners.get(key);
 		//
 		//		if (currentListeners == null) {
@@ -272,23 +274,23 @@ public class EventEngine {
 		//
 		//			currentListeners.add(listenerToRegister);
 		//		}
-		
+
 	}
-	
+
 	/**
 	 * @see Event#unsubscribe(Destination, EventListener)
 	 */
 	public void unsubscribe(Destination dest, EventListener listener) {
-		
+
 		initializeIfNeeded();
-		
+
 		if (dest != null) {
 			Topic topic = (Topic) dest;
 			try {
 				String key = topic.getTopicName() + DELIMITER + listener.getClass().getName();
 				if (subscribers.get(key) != null)
 					subscribers.get(key).close();
-				
+
 				subscribers.remove(key);
 			}
 			catch (JMSException e) {
@@ -296,12 +298,12 @@ public class EventEngine {
 			}
 		}
 	}
-	
+
 	/**
 	 * @see Event#setSubscription(SubscribableEventListener)
 	 */
 	public void setSubscription(SubscribableEventListener listenerToRegister) {
-		
+
 		// loop over each object and each action to register
 		for (Class<? extends OpenmrsObject> objectClass : listenerToRegister.subscribeToObjects()) {
 			for (String action : listenerToRegister.subscribeToActions()) {
@@ -310,7 +312,7 @@ public class EventEngine {
 			}
 		}
 	}
-	
+
 	/**
 	 * @see Event#unsetSubscription(SubscribableEventListener)
 	 */
@@ -322,7 +324,7 @@ public class EventEngine {
 			}
 		}
 	}
-	
+
 	protected String getAction(final Destination dest) {
 		if (dest instanceof Topic) {
 			// look for delimiter and get string before that
@@ -339,23 +341,23 @@ public class EventEngine {
 				// uh, what? TODO: document this
 				return null;
 			}
-			
+
 			return topicName.substring(0, index);
-			
+
 		} else {
 			// what kind of Destination is this if not a Topic??
 			// TODO: document this
 			return null;
 		}
 	}
-	
+
 	/**
 	 * Closes the underlying shared connection which will close the broker too under the hood
 	 */
 	public void shutdown() {
 		if (log.isDebugEnabled())
 			log.debug("Shutting down JMS shared connection...");
-		
+
 		if (connectionFactory != null) {
 			connectionFactory.destroy();
 		}
