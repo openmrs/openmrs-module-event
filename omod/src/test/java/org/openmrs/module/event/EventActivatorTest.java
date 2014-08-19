@@ -31,6 +31,7 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.Event.Action;
 import org.openmrs.event.EventEngine;
+import org.openmrs.event.EventProperties;
 import org.openmrs.event.EventEngineUtil;
 import org.openmrs.event.MockEventListener;
 import org.openmrs.event.SubscribableEventListener;
@@ -59,32 +60,21 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@NotTransactional
 	@Verifies(value = "should create new ActiveMQ directory", method = "started()")
 	public void started_shouldCreateNewActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
-
 		EventActivator eventActivator = new EventActivator();
 		eventActivator.started();
 
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
+		String absolutePath = EventProperties.getActiveMQDataDirectory();
 
 		Assert.assertTrue(new File(absolutePath).exists());
-	}
-
-	private GlobalProperty createGlobalPropertyWithActiveMQDirectory() {
-		String testDirectory = "test-directory";
-		GlobalProperty gp = new GlobalProperty("event.ActiveMQDataDirectory", testDirectory);
-		Context.getAdministrationService().saveGlobalProperty(gp);
-		return gp;
 	}
 
 	@Test
 	@NotTransactional
 	@Verifies(value = "should delete ActiveMQ directory", method = "stopped()")
 	public void stopped_shouldDeleteActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
-
 		EventActivator eventActivator = new EventActivator();
 
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
+		String absolutePath = EventProperties.getActiveMQDataDirectory();
 
 		eventActivator.started();
 		Assert.assertTrue(new File(absolutePath).exists());
@@ -97,14 +87,14 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@NotTransactional
 	@Verifies(value = "should delete old ActiveMQ directory, not new, given by user", method = "stopped()")
 	public void stopped_shouldDeleteOldActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
-
 		EventActivator eventActivator = new EventActivator();
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
+		String absolutePath = EventProperties.getActiveMQDataDirectory();
 
 		eventActivator.started();
 		Assert.assertTrue(new File(absolutePath).exists());
-		gp.setPropertyValue("test-directory-changed");
+		
+		EventProperties.setActiveMQDataDirectory(new File(OpenmrsUtil.getApplicationDataDirectory(), "test-directory-changed").getAbsolutePath());
+		
 		eventActivator.stopped();
 		Assert.assertFalse(new File(eventActivator.activeMQDirectory).exists());
 	}
