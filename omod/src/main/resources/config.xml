@@ -23,7 +23,11 @@
 	<mappingFiles>
 				
 	</mappingFiles>
-
+    <globalProperty>
+    <property>event.ActiveMQDataDirectory</property>
+    <defaultValue>activemq-default-data</defaultValue>
+    <description>Directory where activeMQ files will be stored.</description>
+    </globalProperty>
 	<!-- Internationalization -->
 	<!-- All message codes should start with ${project.parent.artifactId}. -->
 	<messages>
