@@ -91,15 +91,6 @@
 			</dependency>
 
 			<!-- End OpenMRS core -->
-			
-			<!-- Importing versions from refapp distro -->
-            <dependency>
-                <groupId>${distro.groupId}</groupId>
-                <artifactId>${distro.artifactId}</artifactId>
-                <version>${distro.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
 		</dependencies>
 	</dependencyManagement>
 
