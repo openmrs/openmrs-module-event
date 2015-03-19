@@ -127,12 +127,8 @@
 		            <artifactId>maven-release-plugin</artifactId>
 		            <version>2.4.2</version>
 		            <configuration>
-		                 <!-- remove the next line if it exists -->
-		                <pushChanges>false</pushChanges>
 		                 <!-- add this line if it does not exist -->
 		                <tagNameFormat>@{project.version}</tagNameFormat>
-		                <!-- refapp distro contains SNAPSHOT dependencies -->
-                        <allowTimestampedSnapshots>true</allowTimestampedSnapshots>
 		            </configuration>
 		        </plugin>
 			</plugins>
