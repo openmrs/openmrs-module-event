@@ -21,8 +21,8 @@
 	</organization>
 
 	<scm>
-		<connection>scm:git:https://github.com/openmrs/openmrs-module-event</connection>
-		<developerConnection>scm:git:https://github.com/openmrs/openmrs-module-event</developerConnection>
+		<connection>scm:git:git@github.com:openmrs/openmrs-module-event.git</connection>
+		<developerConnection>scm:git:git@github.com:openmrs/openmrs-module-event.git</developerConnection>
 		<url>https://github.com/openmrs/openmrs-module-event/</url>
 	</scm>
 
