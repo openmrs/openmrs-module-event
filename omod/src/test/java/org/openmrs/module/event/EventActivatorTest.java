@@ -42,10 +42,9 @@ import org.springframework.test.annotation.NotTransactional;
 
 @SuppressWarnings("deprecation")
 public class EventActivatorTest extends BaseModuleContextSensitiveTest {
-
 	@Autowired
 	TestSubscribableEventListener listener;
-
+	
 	@Before
 	public void before() {
 		//reset
@@ -54,61 +53,58 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		listener.setUpdatedCount(0);
 		listener.setExpectedEventsCount(0);
 	}
+    @Test
+    @NotTransactional
+    @Verifies(value = "should create new ActiveMQ directory", method = "started()")
+    public void started_shouldCreateNewActiveMQDirectory() throws Exception {
+        GlobalProperty gp=createGlobalPropertyWithActiveMQDirectory();
 
-	@Test
-	@NotTransactional
-	@Verifies(value = "should create new ActiveMQ directory", method = "started()")
-	public void started_shouldCreateNewActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
+        EventActivator eventActivator=new EventActivator();
+        eventActivator.started();
 
-		EventActivator eventActivator = new EventActivator();
-		eventActivator.started();
+        String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/"+gp.getPropertyValue();
 
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
+        Assert.assertTrue(new File(absolutePath).exists());
+    }
+    private GlobalProperty createGlobalPropertyWithActiveMQDirectory()
+    {
+        String testDirectory="test-directory";
+        GlobalProperty gp = new GlobalProperty("event.ActiveMQDataDirectory", testDirectory);
+        Context.getAdministrationService().saveGlobalProperty(gp);
+        return gp;
+    }
+    @Test
+    @NotTransactional
+    @Verifies(value = "should delete ActiveMQ directory", method = "stopped()")
+    public void stopped_shouldDeleteActiveMQDirectory() throws Exception {
+        GlobalProperty gp=createGlobalPropertyWithActiveMQDirectory();
 
-		Assert.assertTrue(new File(absolutePath).exists());
-	}
+        EventActivator eventActivator=new EventActivator();
 
-	private GlobalProperty createGlobalPropertyWithActiveMQDirectory() {
-		String testDirectory = "test-directory";
-		GlobalProperty gp = new GlobalProperty("event.ActiveMQDataDirectory", testDirectory);
-		Context.getAdministrationService().saveGlobalProperty(gp);
-		return gp;
-	}
+        String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/"+gp.getPropertyValue();
 
-	@Test
-	@NotTransactional
-	@Verifies(value = "should delete ActiveMQ directory", method = "stopped()")
-	public void stopped_shouldDeleteActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
+        eventActivator.started();
+        Assert.assertTrue( new File(absolutePath).exists());
 
-		EventActivator eventActivator = new EventActivator();
+        new EventActivator().stopped();
+        Assert.assertFalse(new File(eventActivator.activeMQDirectory).exists());
+    }
+    @Test
+    @NotTransactional
+    @Verifies(value = "should delete old ActiveMQ directory, not new, given by user", method = "stopped()")
+    public void stopped_shouldDeleteOldActiveMQDirectory() throws Exception {
+        GlobalProperty gp=createGlobalPropertyWithActiveMQDirectory();
 
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
+        EventActivator eventActivator=new EventActivator();
+        String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/"+gp.getPropertyValue();
 
-		eventActivator.started();
-		Assert.assertTrue(new File(absolutePath).exists());
-
-		new EventActivator().stopped();
-		Assert.assertFalse(new File(eventActivator.activeMQDirectory).exists());
-	}
-
-	@Test
-	@NotTransactional
-	@Verifies(value = "should delete old ActiveMQ directory, not new, given by user", method = "stopped()")
-	public void stopped_shouldDeleteOldActiveMQDirectory() throws Exception {
-		GlobalProperty gp = createGlobalPropertyWithActiveMQDirectory();
-
-		EventActivator eventActivator = new EventActivator();
-		String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + gp.getPropertyValue();
-
-		eventActivator.started();
-		Assert.assertTrue(new File(absolutePath).exists());
-		gp.setPropertyValue("test-directory-changed");
-		eventActivator.stopped();
-		Assert.assertFalse(new File(eventActivator.activeMQDirectory).exists());
-	}
-
+        eventActivator.started();
+        Assert.assertTrue( new File(absolutePath).exists());
+        gp.setPropertyValue("test-directory-changed");
+        eventActivator.stopped();
+        Assert.assertFalse(new File(eventActivator.activeMQDirectory).exists());
+    }
+	
 	/**
 	 * @see {@link EventActivator#started()}
 	 */
@@ -118,36 +114,36 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(3);
-
+		
 		cs.saveConcept(concept);
 		Concept concept2 = new Concept();
 		ConceptName name2 = new ConceptName("Name2", Locale.ENGLISH);
 		concept2.addName(name2);
 		cs.saveConcept(concept2);
 		cs.purgeConcept(concept2);
-
+		
 		//sanity check
 		listener.waitForEvents();
 		Assert.assertEquals(0, listener.getCreatedCount());
 		Assert.assertEquals(0, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
-
+		
 		listener.setExpectedEventsCount(2);
-
+		
 		new EventActivator().started();
-
+		
 		concept.setVersion("new version");
 		cs.saveConcept(concept);
-
+		
 		cs.saveConcept(concept);
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
 		concept3.addName(name3);
 		cs.saveConcept(concept3);
 		cs.purgeConcept(concept3);
-
+		
 		listener.waitForEvents();
-
+		
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
@@ -161,53 +157,53 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@Verifies(value = "should shutdown the jms connection", method = "stopped()")
 	public void stopped_shouldShutdownTheJmsConnection() throws Exception {
 		listener.setExpectedEventsCount(2);
-
+		
 		new EventActivator().started();
-
+		
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(3);
 		concept.setVersion("new version");
 		cs.saveConcept(concept);
-
+		
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
 		concept3.addName(name3);
 		cs.saveConcept(concept3);
 		cs.purgeConcept(concept3);
-
+		
 		listener.waitForEvents();
-
+		
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
-
+		
 		new EventActivator().stopped();
-
+		
 		concept.setVersion("another version");
 		cs.saveConcept(concept);
-
+		
 		Concept concept4 = new Concept();
 		ConceptName name4 = new ConceptName("Name4", Locale.ENGLISH);
 		concept4.addName(name4);
 		cs.saveConcept(concept4);
 		cs.purgeConcept(concept4);
-
+		
 		//there should have been no changes
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
 	}
-
+	
 	@Handler
 	public static class TestSubscribableEventListener extends MockEventListener implements SubscribableEventListener {
-
+		
 		/**
 		 * @param expectedEventsCount
 		 */
 		public TestSubscribableEventListener() {
 			super(0);
 		}
-
+		
 		/**
 		 * @see org.openmrs.event.SubscribableEventListener#subscribeToObjects()
 		 */
@@ -217,7 +213,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 			clazzes.add(Concept.class);
 			return clazzes;
 		}
-
+		
 		/**
 		 * @see org.openmrs.event.SubscribableEventListener#subscribeToActions()
 		 */

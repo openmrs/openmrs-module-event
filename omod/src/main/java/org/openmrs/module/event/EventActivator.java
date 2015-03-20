@@ -38,9 +38,7 @@ import org.openmrs.util.OpenmrsUtil;
 public class EventActivator implements ModuleActivator {
 
 	protected Log log = LogFactory.getLog(getClass());
-
 	public static String activeMQDirectory;
-
 	/**
 	 * @see ModuleActivator#willRefreshContext()
 	 */
@@ -65,9 +63,9 @@ public class EventActivator implements ModuleActivator {
 	}
 
 	/**
-	 * @should create subscriptions for all subscribable event listeners
-	 * @should create new ActiveMQ directory
 	 * @see ModuleActivator#started()
+	 * @should create subscriptions for all subscribable event listeners
+     * @should create new ActiveMQ directory
 	 */
 	public void started() {
 		log.info("Event Queue Module started");
@@ -80,7 +78,7 @@ public class EventActivator implements ModuleActivator {
 				}
 			}
 		}
-		activeMQDirectory = getActiveMQDirectoryFromGlobalProperty();
+        activeMQDirectory=getActiveMQDirectoryFromGlobalProperty();
 	}
 
 	/**
@@ -91,17 +89,17 @@ public class EventActivator implements ModuleActivator {
 	}
 
 	/**
-	 * @should shutdown the jms connection
-	 * @should delete ActiveMQ directory
-	 * @should delete old ActiveMQ directory, not new, given by user
 	 * @see ModuleActivator#stopped()
+	 * @should shutdown the jms connection
+     * @should delete ActiveMQ directory
+     * @should delete old ActiveMQ directory, not new, given by user
 	 */
 	public void stopped() {
 		log.info("Event Module stopped");
-		deleteLastActiveMQDirectory();
+        deleteLastActiveMQDirectory();
 		try {
 			List<SubscribableEventListener> listeners = HandlerUtil
-					.getHandlersForType(SubscribableEventListener.class, null);
+			        .getHandlersForType(SubscribableEventListener.class, null);
 			for (SubscribableEventListener listener : listeners) {
 				for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
 					for (String action : listener.subscribeToActions()) {
@@ -115,22 +113,20 @@ public class EventActivator implements ModuleActivator {
 		}
 	}
 
-	private String getActiveMQDirectoryFromGlobalProperty() {
-		String dir = "";
-		AdministrationService as = Context.getAdministrationService();
-		GlobalProperty gp = as.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
-		if (gp != null)
-			dir = gp.getPropertyValue();
-		return dir;
-	}
-
-	private void deleteLastActiveMQDirectory() {
-		try {
-			String fullPath = OpenmrsUtil.getApplicationDataDirectory() + "/" + activeMQDirectory;
-			FileUtils.deleteDirectory(new File(fullPath));
-		}
-		catch (IOException e) {
-			log.warn(e.getMessage());
-		}
-	}
+    private String getActiveMQDirectoryFromGlobalProperty() {
+        String dir= "";
+        AdministrationService as= Context.getAdministrationService();
+        GlobalProperty gp=as.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
+        if (gp!=null)
+        dir=gp.getPropertyValue();
+        return dir;
+    }
+    private void deleteLastActiveMQDirectory(){
+        try {
+            String fullPath = OpenmrsUtil.getApplicationDataDirectory() + "/"+activeMQDirectory;
+            FileUtils.deleteDirectory(new File(fullPath));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
