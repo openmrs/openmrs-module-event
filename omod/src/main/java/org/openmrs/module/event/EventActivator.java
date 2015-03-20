@@ -20,13 +20,17 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.GlobalProperty;
 import org.openmrs.OpenmrsObject;
+import org.openmrs.api.AdministrationService;
+import org.openmrs.api.context.Context;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
-import org.openmrs.event.EventProperties;
+import org.openmrs.event.EventEngineConstants;
 import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.module.ModuleActivator;
 import org.openmrs.util.HandlerUtil;
+import org.openmrs.util.OpenmrsUtil;
 
 /**
  * This class contains the logic that is run every time this module is either started or stopped.
@@ -76,8 +80,7 @@ public class EventActivator implements ModuleActivator {
 				}
 			}
 		}
-		
-		activeMQDirectory = EventProperties.getActiveMQDataDirectory();
+		activeMQDirectory = getActiveMQDirectoryFromGlobalProperty();
 	}
 
 	/**
@@ -95,6 +98,7 @@ public class EventActivator implements ModuleActivator {
 	 */
 	public void stopped() {
 		log.info("Event Module stopped");
+		deleteLastActiveMQDirectory();
 		try {
 			List<SubscribableEventListener> listeners = HandlerUtil
 					.getHandlersForType(SubscribableEventListener.class, null);
@@ -109,13 +113,21 @@ public class EventActivator implements ModuleActivator {
 		finally {
 			Event.shutdown();
 		}
-		
-		deleteLastActiveMQDataDirectory();
 	}
 
-	private void deleteLastActiveMQDataDirectory() {
+	private String getActiveMQDirectoryFromGlobalProperty() {
+		String dir = "";
+		AdministrationService as = Context.getAdministrationService();
+		GlobalProperty gp = as.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
+		if (gp != null)
+			dir = gp.getPropertyValue();
+		return dir;
+	}
+
+	private void deleteLastActiveMQDirectory() {
 		try {
-			FileUtils.deleteDirectory(new File(activeMQDirectory));
+			String fullPath = OpenmrsUtil.getApplicationDataDirectory() + "/" + activeMQDirectory;
+			FileUtils.deleteDirectory(new File(fullPath));
 		}
 		catch (IOException e) {
 			log.warn(e.getMessage());

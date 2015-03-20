@@ -13,9 +13,15 @@
  */
 package org.openmrs.event;
 
+import org.apache.commons.io.FileUtils;
+import org.openmrs.GlobalProperty;
+import org.openmrs.api.context.Context;
+import org.openmrs.util.OpenmrsUtil;
+import org.openmrs.api.AdministrationService;
+
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -115,25 +121,27 @@ public class EventEngine {
 	}
 
 	private synchronized void initializeIfNeeded() {
+		AdministrationService as = Context.getAdministrationService();
 		if (jmsTemplate == null) {
+			GlobalProperty ActiveMQDirectoryProperty = as
+					.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
 			log.info("creating connection factory");
-			String activeMQDataDirectory;
-			try {
-				activeMQDataDirectory = URLEncoder.encode(EventProperties.getActiveMQDataDirectory(), "UTF-8");
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException("Failed to encode URI", e);
+			String brokerURL;
+			if (ActiveMQDirectoryProperty != null) {
+				String activeMQDataDirectory = ActiveMQDirectoryProperty.getPropertyValue();
+				String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/" + activeMQDataDirectory;
+				brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + absolutePath;
+			} else {
+				brokerURL = "vm://localhost?broker.persistent=true";
 			}
-			
-			String brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + activeMQDataDirectory;
 			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
+
 			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
 			jmsTemplate = new JmsTemplate(connectionFactory);
 		} else {
 			log.trace("messageListener already defined");
 		}
 	}
-	
-	
 
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
