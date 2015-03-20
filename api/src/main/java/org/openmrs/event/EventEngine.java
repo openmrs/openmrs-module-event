@@ -13,7 +13,10 @@
  */
 package org.openmrs.event;
 
+import java.io.File;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.APIException;
+import org.openmrs.util.OpenmrsUtil;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -115,7 +119,14 @@ public class EventEngine {
 	private synchronized void initializeIfNeeded() {
 		if (jmsTemplate == null) {
 			log.info("creating connection factory");
-			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=true");
+			String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
+			try {
+				dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
+			} catch (UnsupportedEncodingException e) {
+				throw new RuntimeException("Failed to encode URI", e);
+			}
+			String brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + dataDirectory;
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
 			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
 			jmsTemplate = new JmsTemplate(connectionFactory);
 		} else {
