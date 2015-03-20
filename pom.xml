@@ -3,7 +3,7 @@
 
 	<groupId>org.openmrs</groupId>
 	<artifactId>event</artifactId>
-	<version>2.2-SNAPSHOT</version>
+	<version>2.3-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Event Module</name>
 	<description>Provides a dev friendly event notifying mechanism</description>
