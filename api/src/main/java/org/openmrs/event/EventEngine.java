@@ -12,13 +12,7 @@
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
 package org.openmrs.event;
-import org.apache.commons.io.FileUtils;
-import org.openmrs.GlobalProperty;
-import org.openmrs.api.context.Context;
-import org.openmrs.util.OpenmrsUtil;
-import org.openmrs.api.AdministrationService;
-import java.io.File;
-import java.io.IOException;
+
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,22 +38,21 @@ import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
 
-
 /**
  * Used by {@link Event}.
  */
 public class EventEngine {
-
+	
 	protected final static String DELIMITER = ":";
-
+	
 	protected static Log log = LogFactory.getLog(Event.class);
-
+	
 	protected JmsTemplate jmsTemplate = null;
-
+	
 	protected Map<String, TopicSubscriber> subscribers = new HashMap<String, TopicSubscriber>();
-
+	
 	protected SingleConnectionFactory connectionFactory;
-
+	
 	/**
 	 * @see Event#fireAction(String, OpenmrsObject)
 	 */
@@ -67,7 +60,7 @@ public class EventEngine {
 		Destination key = getDestination(object.getClass(), action);
 		fireEvent(key, object);
 	}
-
+	
 	/**
 	 * @see Event#fireEvent(Destination, OpenmrsObject)
 	 */
@@ -78,10 +71,10 @@ public class EventEngine {
 		}
 		eventMessage.put("classname", object.getClass().getName());
 		eventMessage.put("action", getAction(dest));
-
+		
 		doFireEvent(dest, eventMessage);
 	}
-
+	
 	/**
 	 * @see Event#fireEvent(String, EventMessage)
 	 */
@@ -91,57 +84,46 @@ public class EventEngine {
 		}
 		doFireEvent(getDestination(topicName), eventMessage);
 	}
-
+	
 	/**
 	 * @param dest
 	 * @param eventMessage
 	 */
 	private void doFireEvent(final Destination dest, final EventMessage eventMessage) {
-
+		
 		initializeIfNeeded();
-
+		
 		jmsTemplate.send(dest, new MessageCreator() {
-
+			
 			@Override
 			public Message createMessage(Session session) throws JMSException {
 				if (log.isInfoEnabled())
 					log.info("Sending data " + eventMessage);
-
+				
 				MapMessage mapMessage = session.createMapMessage();
 				if (eventMessage != null) {
 					for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
 						mapMessage.setObject(entry.getKey(), entry.getValue());
 					}
 				}
-
+				
 				return mapMessage;
 			}
 		});
 	}
-
-    private synchronized void initializeIfNeeded() {
-        AdministrationService as=Context.getAdministrationService();
-        if (jmsTemplate == null) {
-            GlobalProperty ActiveMQDirectoryProperty=as.getGlobalPropertyObject(EventEngineConstants.ACTIVEMQ_DATA_DIRECTORY);
-            log.info("creating connection factory");
-            String brokerURL;
-            if ( ActiveMQDirectoryProperty!=null) {
-                String activeMQDataDirectory = ActiveMQDirectoryProperty.getPropertyValue();
-                String absolutePath = OpenmrsUtil.getApplicationDataDirectory() + "/"+activeMQDataDirectory;
-                brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + absolutePath;
-            } else {
-                brokerURL = "vm://localhost?broker.persistent=true";
-            }
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
-
-            connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
-            jmsTemplate = new JmsTemplate(connectionFactory);
-        } else {
-            log.trace("messageListener already defined");
-        }
-    }
-
-    /**
+	
+	private synchronized void initializeIfNeeded() {
+		if (jmsTemplate == null) {
+			log.info("creating connection factory");
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory("vm://localhost?broker.persistent=true");
+			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
+			jmsTemplate = new JmsTemplate(connectionFactory);
+		} else {
+			log.trace("messageListener already defined");
+		}
+	}
+	
+	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	public void subscribe(Class<?> clazz, String action, EventListener listener) {
