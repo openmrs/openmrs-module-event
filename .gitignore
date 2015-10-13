@@ -10,3 +10,4 @@ activemq-data
 # Package Files #
 *.jar
 *.war
+/bin/
