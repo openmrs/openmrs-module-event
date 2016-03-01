@@ -7,10 +7,14 @@
 		<version>2.3-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>event-api</artifactId>
+	<artifactId>event-api-2.x</artifactId>
 	<packaging>jar</packaging>
-	<name>Event Module API</name>
-	<description>API project for EventQueue</description>
+	<name>Event Module API 2.x</name>
+	<description>2.x API project for EventQueue</description>
+
+	<properties>
+        	<openMRSVersion>2.0.0-alpha</openMRSVersion>
+        </properties>
 
 	<dependencies>
 	
@@ -22,6 +26,12 @@
 		</dependency> 
 		-->
 		
+			<dependency>
+				<groupId>${project.parent.groupId}</groupId>
+				<artifactId>${project.parent.artifactId}-api</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+
 			<dependency>
 				<groupId>org.apache.activemq</groupId>
 				<artifactId>activemq-core</artifactId>
@@ -119,6 +129,7 @@
 		<dependency>
 			<groupId>org.openmrs.api</groupId>
 			<artifactId>openmrs-api</artifactId>
+			<version>${openMRSVersion}</version>
 			<type>jar</type>
 			<scope>provided</scope>
 		</dependency>
@@ -126,6 +137,7 @@
 		<dependency>
 			<groupId>org.openmrs.web</groupId>
 			<artifactId>openmrs-web</artifactId>
+			<version>${openMRSVersion}</version>
 			<type>jar</type>
 			<scope>provided</scope>
 		</dependency>

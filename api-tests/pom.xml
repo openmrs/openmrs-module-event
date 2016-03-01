@@ -7,10 +7,10 @@
 		<version>2.3-SNAPSHOT</version>
 	</parent>
 
-	<artifactId>event-api</artifactId>
+	<artifactId>event-api-tests</artifactId>
 	<packaging>jar</packaging>
-	<name>Event Module API</name>
-	<description>API project for EventQueue</description>
+	<name>Event Module API tests</name>
+	<description>API tests project for EventQueue</description>
 
 	<dependencies>
 	
@@ -21,7 +21,29 @@
 			<artifactId>library-name</artifactId>
 		</dependency> 
 		-->
-		
+			<dependency>
+				<groupId>${project.parent.groupId}</groupId>
+				<artifactId>${project.parent.artifactId}-api</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>${project.parent.groupId}</groupId>
+				<artifactId>${project.parent.artifactId}-api-1.x</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>${project.parent.groupId}</groupId>
+				<artifactId>${project.parent.artifactId}-api-2.x</artifactId>
+				<version>${project.parent.version}</version>
+			</dependency>
+			
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-all</artifactId>
+			</dependency>
+			
 			<dependency>
 				<groupId>org.apache.activemq</groupId>
 				<artifactId>activemq-core</artifactId>
@@ -130,6 +152,27 @@
 			<scope>provided</scope>
 		</dependency>
 				
+		<dependency>
+			<groupId>org.openmrs.api</groupId>
+			<artifactId>openmrs-api</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.openmrs.web</groupId>
+			<artifactId>openmrs-web</artifactId>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.openmrs.test</groupId>
+			<artifactId>openmrs-test</artifactId>
+			<type>pom</type>
+			<scope>test</scope>
+		</dependency>
+				
 		<!-- End OpenMRS core -->
 		
 	</dependencies>
@@ -141,6 +184,13 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
+
+		<testResources>
+			<testResource>
+				<directory>src/test/resources</directory>
+				<filtering>true</filtering>
+			</testResource>
+		</testResources>
 	</build>
 
 </project>
