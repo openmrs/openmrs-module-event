@@ -125,7 +125,7 @@ public class EventEngine {
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException("Failed to encode URI", e);
 			}
-			String brokerURL = "vm://localhost?broker.persistent=true&broker.dataDirectory=" + dataDirectory;
+			String brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory=" + dataDirectory;
 			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
 			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
 			jmsTemplate = new JmsTemplate(connectionFactory);
