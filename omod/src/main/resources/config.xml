@@ -39,17 +39,6 @@
 		<file>messages_es.properties</file>
 	</messages>
 	<!-- /Internationalization -->
-	
-	<conditionalResources>
-		<conditionalResource>
-			<path>/lib/event-api-1.x.*</path>
-			<openmrsVersion>1.9.9 - 1.12.*</openmrsVersion>
-		</conditionalResource>
-		<conditionalResource>
-			<path>/lib/event-api-2.x.*</path>
-			<openmrsVersion>2.0</openmrsVersion>
-		</conditionalResource>
-	</conditionalResources>
 
 </module>
 

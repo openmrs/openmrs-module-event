@@ -10,11 +10,12 @@ import org.hibernate.CallbackException;
 import org.hibernate.EmptyInterceptor;
 import org.hibernate.Interceptor;
 import org.hibernate.Transaction;
-import org.hibernate.collection.spi.PersistentCollection;
+import org.hibernate.collection.PersistentCollection;
 import org.hibernate.type.Type;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Retireable;
 import org.openmrs.Voidable;
+import org.openmrs.annotation.OpenmrsProfile;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
 
@@ -25,11 +26,12 @@ import org.openmrs.event.Event.Action;
  *
  * We use a Stack here to handle any nested transactions that may occur within a single thread
  */
-public class HibernateEventInterceptor extends EmptyInterceptor {
+@OpenmrsProfile(openmrsPlatformVersion = "1.*")
+public class HibernateEventInterceptor_1_x extends EmptyInterceptor {
 	
 	private static final long serialVersionUID = 1L;
 	
-	protected final Log log = LogFactory.getLog(HibernateEventInterceptor.class);
+	protected final Log log = LogFactory.getLog(HibernateEventInterceptor_1_x.class);
 	
 	private ThreadLocal<Stack<HashSet<OpenmrsObject>>> inserts = new ThreadLocal<Stack<HashSet<OpenmrsObject>>>();
 	
