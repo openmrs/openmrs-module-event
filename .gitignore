@@ -11,3 +11,5 @@ activemq-data
 *.jar
 *.war
 /bin/
+
+*~

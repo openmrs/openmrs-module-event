@@ -114,6 +114,14 @@
 				</exclusions>
 			</dependency>	
 
+			<!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-core -->
+			<dependency>
+    				<groupId>org.hibernate</groupId>
+    				<artifactId>hibernate-core</artifactId>
+    				<version>4.1.0.Final</version>
+			</dependency>
+
+
 		<!-- Begin OpenMRS core -->
 		
 		<dependency>
