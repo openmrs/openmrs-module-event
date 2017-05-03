@@ -1,6 +1,7 @@
 package org.openmrs.event.api.db.hibernate;
 
 import java.io.Serializable;
+import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Stack;
 
@@ -8,16 +9,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.hibernate.CallbackException;
 import org.hibernate.EmptyInterceptor;
+import org.hibernate.HibernateException;
 import org.hibernate.Interceptor;
 import org.hibernate.Transaction;
-import org.hibernate.collection.spi.PersistentCollection;
 import org.hibernate.type.Type;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Retireable;
 import org.openmrs.Voidable;
+import org.openmrs.api.context.Context;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ReflectionUtils;
 
 /**
  * A hibernate {@link Interceptor} implementation, intercepts any database inserts, updates and
@@ -141,11 +144,37 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	public void onCollectionUpdate(Object collection, Serializable key) throws CallbackException {
 		if (collection != null) {
 			//If a collection element has been added/removed, fire an update event for the parent entity
-			Object owningObject = ((PersistentCollection) collection).getOwner();
+			Object owningObject = getOwner(collection);
 			if (owningObject instanceof OpenmrsObject) {
 				updates.get().peek().add((OpenmrsObject) owningObject);
 			}
 		}
+	}
+	
+	/**
+	 * Gets the owning object of a persistent collection
+	 *
+	 * @param collection the persistent collection
+	 * @return the owning object
+	 */
+	private Object getOwner(Object collection) {
+		Class<?> pCollClass;
+		try {
+			pCollClass = Context.loadClass("org.hibernate.collection.PersistentCollection");
+		}
+		catch (ClassNotFoundException oe) {
+			//We are running against openmrs core 2.0 or later where it's a later hibernate version
+			try {
+				pCollClass = Context.loadClass("org.hibernate.collection.spi.PersistentCollection");
+			}
+			catch (ClassNotFoundException ie) {
+				throw new HibernateException(ie);
+			}
+		}
+		
+		Method method = ReflectionUtils.findMethod(pCollClass, "getOwner");
+		
+		return ReflectionUtils.invokeMethod(method, collection);
 	}
 	
 	/**
