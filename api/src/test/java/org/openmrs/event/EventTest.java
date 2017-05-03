@@ -19,8 +19,7 @@ import java.util.Locale;
 
 import javax.jms.Destination;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.junit.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
@@ -36,7 +35,7 @@ import org.springframework.test.annotation.NotTransactional;
 public class EventTest extends BaseModuleContextSensitiveTest {
 	
 	/**
-	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
+	 * @see {@link Event#subscribe(Class, String, EventListener)}
 	 */
 	@Test
 	@NotTransactional
@@ -64,7 +63,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
+	 * @see {@link Event#subscribe(Class,String,EventListener)}
 	 */
 	@Test
 	@NotTransactional
@@ -125,7 +124,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#unsubscribe(Class<+QOpenmrsObject;>,Action,EventListener)}
+	 * @see {@link Event#unsubscribe(Class,Action,EventListener)}
 	 */
 	@Test
 	@NotTransactional
@@ -158,7 +157,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#unsubscribe(Class<OpenmrsObject>,Action,EventListener)}
+	 * @see {@link Event#unsubscribe(Class,Action,EventListener)}
 	 */
 	@Test
 	@NotTransactional
@@ -313,7 +312,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#subscribe(Class<OpenmrsObject>,String,EventListener)}
+	 * @see {@link Event#subscribe(Class,String,EventListener)}
 	 */
 	@Test
 	@NotTransactional
@@ -335,7 +334,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#fireEvent(Action, Class, EventMessage)}
+	 * @see {@link Event#fireEvent(String, EventMessage)}
 	 */
 	@Test
 	public void fireEvent_shouldFireAnEventForTheActionAndClassWithTheSpecifiedMessage() throws Exception {

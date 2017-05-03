@@ -32,27 +32,7 @@
 		
 		<dependency>
 			<groupId>${project.parent.groupId}</groupId>
-			<artifactId>${project.parent.artifactId}-api-1.x</artifactId>
-			<version>${project.parent.version}</version>
-		</dependency>
-		
-		<dependency>
-			<groupId>${project.parent.groupId}</groupId>
-			<artifactId>${project.parent.artifactId}-api-2.x</artifactId>
-			<version>${project.parent.version}</version>
-		</dependency>
-		
-		<dependency>
-			<groupId>${project.parent.groupId}</groupId>
 			<artifactId>${project.parent.artifactId}-api</artifactId>
-			<version>${project.parent.version}</version>
-			<classifier>tests</classifier>
-			<scope>test</scope>
-		</dependency>
-		
-		<dependency>
-			<groupId>${project.parent.groupId}</groupId>
-			<artifactId>${project.parent.artifactId}-api-tests</artifactId>
 			<version>${project.parent.version}</version>
 			<classifier>tests</classifier>
 			<scope>test</scope>

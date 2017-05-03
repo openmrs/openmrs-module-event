@@ -121,7 +121,7 @@ public class MockEventListener implements EventListener {
 	}
 	
 	/**
-	 * @see javax.jms.MessageListener#onMessage(javax.jms.Message)
+	 * @see javax.jms.MessageListener#onMessage(Message)
 	 */
 	@Override
 	public void onMessage(Message message) {
