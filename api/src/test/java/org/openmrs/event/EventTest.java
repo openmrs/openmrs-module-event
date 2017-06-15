@@ -71,7 +71,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	@Verifies(value = "should subscribe to every action if action is null", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
 	public void subscribe_shouldSubscribeToEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
-		MockEventListener listener = new MockEventListener(3);
+		MockEventListener listener = new MockEventListener(6);
 		Event.subscribe(Concept.class, null, listener);
 		
 		Concept concept = new Concept();
@@ -84,12 +84,6 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		
 		cs.purgeConcept(concept);
 		
-		listener.waitForEvents();
-		
-		Assert.assertEquals(1, listener.getCreatedCount());
-		Assert.assertEquals(1, listener.getUpdatedCount());
-		Assert.assertEquals(1, listener.getDeletedCount());
-		
 		//Should work for subclasses
 		ConceptNumeric cn = new ConceptNumeric();
 		cn.setDatatype(cs.getConceptDatatype(1));
@@ -100,8 +94,8 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		cn.setVersion("new random version");
 		cs.saveConcept(cn);
 		cs.purgeConcept(cn);
-
-        listener.waitForEvents();
+		
+		listener.waitForEvents();
 		
 		Assert.assertEquals(2, listener.getCreatedCount());
 		Assert.assertEquals(2, listener.getUpdatedCount());
@@ -146,37 +140,11 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	 */
 	@Test
 	@NotTransactional
-	@Verifies(value = "should unsubscribe for every action if action is null", method = "unsubscribe(Class<+QOpenmrsObject;>,Action,EventListener)")
+	@Verifies(value = "should unsubscribe for every action if action is null", method = "unsubscribe(Class<OpenmrsObject>,Action,EventListener)")
 	public void unsubscribe_shouldUnsubscribeForEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
-		MockEventListener listener = new MockEventListener(1);
+		MockEventListener listener = new MockEventListener(6);
 		Event.subscribe(Concept.class, null, listener);
-		
-		Concept concept1 = new Concept();
-		ConceptName name1 = new ConceptName("Name1", Locale.ENGLISH);
-		concept1.addName(name1);
-		cs.saveConcept(concept1);
-		
-		concept1.setVersion("Some new version");
-		cs.saveConcept(concept1);
-		cs.purgeConcept(concept1);
-		
-		//Should work for subclasses
-		ConceptNumeric cn1 = new ConceptNumeric();
-		cn1.setDatatype(cs.getConceptDatatype(1));
-		ConceptName cName1 = new ConceptName("Name", Locale.ENGLISH);
-		cn1.addName(cName1);
-		cs.saveConcept(cn1);
-		
-		cn1.setVersion("new random version");
-		cs.saveConcept(cn1);
-		cs.purgeConcept(cn1);
-		
-		listener.waitForEvents();
-		
-		Assert.assertEquals(2, listener.getCreatedCount());
-		Assert.assertEquals(2, listener.getUpdatedCount());
-		Assert.assertEquals(2, listener.getDeletedCount());
 		
 		Event.unsubscribe(Concept.class, null, listener);
 		Concept concept2 = new Concept();
@@ -201,9 +169,9 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		
 		listener.waitForEvents();
 		
-		Assert.assertEquals(2, listener.getCreatedCount());
-		Assert.assertEquals(2, listener.getUpdatedCount());
-		Assert.assertEquals(2, listener.getDeletedCount());
+		Assert.assertEquals(0, listener.getCreatedCount());
+		Assert.assertEquals(0, listener.getUpdatedCount());
+		Assert.assertEquals(0, listener.getDeletedCount());
 	}
 	
 	/**
