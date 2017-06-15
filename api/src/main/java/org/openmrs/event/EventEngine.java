@@ -14,10 +14,12 @@
 package org.openmrs.event;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.jms.Destination;
@@ -122,10 +124,12 @@ public class EventEngine {
 			String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
 			try {
 				dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
-			} catch (UnsupportedEncodingException e) {
+			}
+			catch (UnsupportedEncodingException e) {
 				throw new RuntimeException("Failed to encode URI", e);
 			}
-			String brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory=" + dataDirectory;
+			String brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
+			        + dataDirectory;
 			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
 			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
 			jmsTemplate = new JmsTemplate(connectionFactory);
@@ -139,12 +143,35 @@ public class EventEngine {
 	 */
 	public void subscribe(Class<?> clazz, String action, EventListener listener) {
 		if (action != null) {
-			Destination dest = getDestination(clazz, action);
-			subscribe(dest, listener);
+			subscribeToClass(clazz, action, listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				subscribe(getDestination(clazz, a.toString()), listener);
+				subscribeToClass(clazz, a.toString(), listener);
 			}
+		}
+	}
+	
+	/**
+	 * Adds subscriptions to the topics that match the specified action and class including
+	 * subclasses
+	 * 
+	 * @param clazz the class to match
+	 * @param action the action to match
+	 * @param listener the Listener subscribing to the topic
+	 */
+	private void subscribeToClass(Class<?> clazz, String action, EventListener listener) {
+		try {
+			List<Class<?>> classes = EventClassScanner.getInstance().getClasses(clazz);
+			for (Class c : classes) {
+				Destination dest = getDestination(c, action);
+				subscribe(dest, listener);
+			}
+		}
+		catch (IOException e) {
+			throw new APIException(e);
+		}
+		catch (ClassNotFoundException e) {
+			new APIException(e);
 		}
 	}
 	
@@ -163,11 +190,35 @@ public class EventEngine {
 	 */
 	public void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
 		if (action != null) {
-			unsubscribe(getDestination(clazz, action.toString()), listener);
+			unsubscribeFromClass(clazz, action.toString(), listener);
 		} else {
 			for (Event.Action a : Event.Action.values()) {
-				unsubscribe(getDestination(clazz, a.toString()), listener);
+				unsubscribeFromClass(clazz, a.toString(), listener);
 			}
+		}
+	}
+	
+	/**
+	 * Removes subscriptions from the topics that match the specified action and class including
+	 * subclasses
+	 *
+	 * @param clazz the class to match
+	 * @param action the action to match
+	 * @param listener the Listener subscribing to the top
+	 */
+	private void unsubscribeFromClass(Class<?> clazz, String action, EventListener listener) {
+		try {
+			List<Class<?>> classes = EventClassScanner.getInstance().getClasses(clazz);
+			for (Class c : classes) {
+				Destination dest = getDestination(c, action);
+				unsubscribe(dest, listener);
+			}
+		}
+		catch (IOException e) {
+			throw new APIException(e);
+		}
+		catch (ClassNotFoundException e) {
+			new APIException(e);
 		}
 	}
 	

@@ -23,6 +23,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
+import org.openmrs.ConceptNumeric;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
@@ -68,7 +69,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	@Test
 	@NotTransactional
 	@Verifies(value = "should subscribe to every action if action is null", method = "subscribe(Class<OpenmrsObject>,String,EventListener)")
-	public void subscribe_shouldSubscribeToEveryActionIfActionIsNull() throws Exception {
+	public void subscribe_shouldSubscribeToEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(3);
 		Event.subscribe(Concept.class, null, listener);
@@ -88,6 +89,23 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(1, listener.getDeletedCount());
+		
+		//Should work for subclasses
+		ConceptNumeric cn = new ConceptNumeric();
+		cn.setDatatype(cs.getConceptDatatype(1));
+		ConceptName cName = new ConceptName("Name", Locale.ENGLISH);
+		cn.addName(cName);
+		cs.saveConcept(cn);
+		
+		cn.setVersion("new random version");
+		cs.saveConcept(cn);
+		cs.purgeConcept(cn);
+
+        listener.waitForEvents();
+		
+		Assert.assertEquals(2, listener.getCreatedCount());
+		Assert.assertEquals(2, listener.getUpdatedCount());
+		Assert.assertEquals(2, listener.getDeletedCount());
 	}
 	
 	/**
@@ -129,7 +147,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	@Test
 	@NotTransactional
 	@Verifies(value = "should unsubscribe for every action if action is null", method = "unsubscribe(Class<+QOpenmrsObject;>,Action,EventListener)")
-	public void unsubscribe_shouldUnsubscribeForEveryActionIfActionIsNull() throws Exception {
+	public void unsubscribe_shouldUnsubscribeForEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(1);
 		Event.subscribe(Concept.class, null, listener);
@@ -139,21 +157,53 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		concept1.addName(name1);
 		cs.saveConcept(concept1);
 		
+		concept1.setVersion("Some new version");
+		cs.saveConcept(concept1);
+		cs.purgeConcept(concept1);
+		
+		//Should work for subclasses
+		ConceptNumeric cn1 = new ConceptNumeric();
+		cn1.setDatatype(cs.getConceptDatatype(1));
+		ConceptName cName1 = new ConceptName("Name", Locale.ENGLISH);
+		cn1.addName(cName1);
+		cs.saveConcept(cn1);
+		
+		cn1.setVersion("new random version");
+		cs.saveConcept(cn1);
+		cs.purgeConcept(cn1);
+		
 		listener.waitForEvents();
 		
-		Assert.assertEquals(1, listener.getCreatedCount());
+		Assert.assertEquals(2, listener.getCreatedCount());
+		Assert.assertEquals(2, listener.getUpdatedCount());
+		Assert.assertEquals(2, listener.getDeletedCount());
 		
 		Event.unsubscribe(Concept.class, null, listener);
 		Concept concept2 = new Concept();
 		ConceptName name2 = new ConceptName("Name2", Locale.ENGLISH);
 		concept2.addName(name2);
 		cs.saveConcept(concept2);
-		cs.purgeConcept(concept1);
 		
-		Thread.sleep(100);
+		concept2.setVersion("New version");
+		cs.saveConcept(concept2);
+		cs.purgeConcept(concept2);
 		
-		Assert.assertEquals(1, listener.getCreatedCount());
-		Assert.assertEquals(0, listener.getDeletedCount());
+		//Should work for subclasses
+		ConceptNumeric cn2 = new ConceptNumeric();
+		cn2.setDatatype(cs.getConceptDatatype(1));
+		ConceptName cName2 = new ConceptName("Name", Locale.ENGLISH);
+		cn2.addName(cName2);
+		cs.saveConcept(cn2);
+		
+		cn2.setVersion("new random version");
+		cs.saveConcept(cn2);
+		cs.purgeConcept(cn2);
+		
+		listener.waitForEvents();
+		
+		Assert.assertEquals(2, listener.getCreatedCount());
+		Assert.assertEquals(2, listener.getUpdatedCount());
+		Assert.assertEquals(2, listener.getDeletedCount());
 	}
 	
 	/**
