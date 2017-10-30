@@ -3,7 +3,7 @@
 
 	<groupId>org.openmrs</groupId>
 	<artifactId>event</artifactId>
-	<version>2.6.0</version>
+	<version>2.7.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<name>Event Module</name>
 	<description>Provides a dev friendly event notifying mechanism</description>
@@ -24,7 +24,7 @@
 		<connection>scm:git:git@github.com:openmrs/openmrs-module-event.git</connection>
 		<developerConnection>scm:git:git@github.com:openmrs/openmrs-module-event.git</developerConnection>
 		<url>https://github.com/openmrs/openmrs-module-event/</url>
-	  <tag>2.6.0</tag>
+	  <tag>HEAD</tag>
   </scm>
 
 	<modules>
