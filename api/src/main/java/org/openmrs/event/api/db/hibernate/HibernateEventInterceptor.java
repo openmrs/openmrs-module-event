@@ -184,7 +184,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 	public void afterTransactionCompletion(Transaction tx) {
 		
 		try {
-			if (tx.wasCommitted()) {
+			if (wasCommitted(tx)) {
 				for (OpenmrsObject delete : deletes.get().peek()) {
 					Event.fireAction(Action.PURGED.name(), delete);
 				}
@@ -219,6 +219,26 @@ public class HibernateEventInterceptor extends EmptyInterceptor {
 			unvoidedObjects.get().pop();
 			
 			removeStackIfEmpty();
+		}
+	}
+	
+	private boolean wasCommitted(Transaction tx) {
+		try {
+			return tx.wasCommitted();
+		}
+		catch (NoSuchMethodError error) {
+			try {
+				//In Hibernate 5 Transaction.wasCommitted() was removed and replaced 
+				//with: Transaction().getStatus() == TransactionStatus.COMMITTED
+				Method method = tx.getClass().getMethod("getStatus");
+				Object status = method.invoke(tx);
+				final Object COMMITTED = Enum.valueOf((Class<Enum>)status.getClass(), "COMMITTED");
+				return status.equals(COMMITTED);
+			}
+			catch (Exception ex) {
+				log.error("Failed to determine if transaction was committed", ex);
+			}
+			return false;
 		}
 	}
 	
