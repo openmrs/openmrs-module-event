@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,17 +49,19 @@ import org.springframework.jms.core.MessageCreator;
  * Used by {@link Event}.
  */
 public class EventEngine {
-	
+
 	protected final static String DELIMITER = ":";
-	
+
 	protected static Log log = LogFactory.getLog(Event.class);
-	
+
 	protected JmsTemplate jmsTemplate = null;
-	
+
 	protected Map<String, TopicSubscriber> subscribers = new HashMap<String, TopicSubscriber>();
-	
+
 	protected SingleConnectionFactory connectionFactory;
-	
+
+	protected List<Class<?>> eventClasses = new ArrayList<Class<?>>();
+
 	/**
 	 * @see Event#fireAction(String, OpenmrsObject)
 	 */
@@ -66,7 +69,7 @@ public class EventEngine {
 		Destination key = getDestination(object.getClass(), action);
 		fireEvent(key, object);
 	}
-	
+
 	/**
 	 * @see Event#fireEvent(Destination, OpenmrsObject)
 	 */
@@ -77,10 +80,10 @@ public class EventEngine {
 		}
 		eventMessage.put("classname", object.getClass().getName());
 		eventMessage.put("action", getAction(dest));
-		
+
 		doFireEvent(dest, eventMessage);
 	}
-	
+
 	/**
 	 * @see Event#fireEvent(String, EventMessage)
 	 */
@@ -90,34 +93,34 @@ public class EventEngine {
 		}
 		doFireEvent(getDestination(topicName), eventMessage);
 	}
-	
+
 	/**
 	 * @param dest
 	 * @param eventMessage
 	 */
 	private void doFireEvent(final Destination dest, final EventMessage eventMessage) {
-		
+
 		initializeIfNeeded();
-		
+
 		jmsTemplate.send(dest, new MessageCreator() {
-			
+
 			@Override
 			public Message createMessage(Session session) throws JMSException {
 				if (log.isInfoEnabled())
 					log.info("Sending data " + eventMessage);
-				
+
 				MapMessage mapMessage = session.createMapMessage();
 				if (eventMessage != null) {
 					for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
 						mapMessage.setObject(entry.getKey(), entry.getValue());
 					}
 				}
-				
+
 				return mapMessage;
 			}
 		});
 	}
-	
+
 	private synchronized void initializeIfNeeded() {
 		if (jmsTemplate == null) {
 			log.info("creating connection factory");
@@ -137,7 +140,7 @@ public class EventEngine {
 			log.trace("messageListener already defined");
 		}
 	}
-	
+
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
@@ -149,20 +152,25 @@ public class EventEngine {
 				subscribeToClass(clazz, a.toString(), listener);
 			}
 		}
+		eventClasses.removeAll(eventClasses);
 	}
-	
+
 	/**
 	 * Adds subscriptions to the topics that match the specified action and class including
 	 * subclasses
-	 * 
+	 *
 	 * @param clazz the class to match
 	 * @param action the action to match
 	 * @param listener the Listener subscribing to the topic
 	 */
 	private void subscribeToClass(Class<?> clazz, String action, EventListener listener) {
 		try {
-			List<Class<?>> classes = EventClassScanner.getInstance().getClasses(clazz);
-			for (Class c : classes) {
+
+			if(eventClasses.isEmpty()){
+				eventClasses = EventClassScanner.getInstance().getClasses(clazz);
+			}
+
+			for (Class c : eventClasses) {
 				Destination dest = getDestination(c, action);
 				subscribe(dest, listener);
 			}
