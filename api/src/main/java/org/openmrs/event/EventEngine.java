@@ -40,6 +40,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.APIException;
+import org.openmrs.api.AdministrationService;
+import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
@@ -121,25 +123,32 @@ public class EventEngine {
 		});
 	}
 
-	private synchronized void initializeIfNeeded() {
-		if (jmsTemplate == null) {
-			log.info("creating connection factory");
-			String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
-			try {
-				dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
-			}
-			catch (UnsupportedEncodingException e) {
-				throw new RuntimeException("Failed to encode URI", e);
-			}
-			String brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
-			        + dataDirectory;
-			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
-			connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
-			jmsTemplate = new JmsTemplate(connectionFactory);
-		} else {
-			log.trace("messageListener already defined");
-		}
-	}
+    private synchronized void initializeIfNeeded() {
+        if (jmsTemplate == null) {
+            log.info("creating connection factory");
+			String property = Context.getRegisteredComponent("adminService", AdministrationService.class)
+					.getGlobalProperty("activeMQ.externalUrl");
+            String brokerURL;
+            if (property == null || property.isEmpty()) {
+                String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
+                try {
+                    dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
+                }
+                catch (UnsupportedEncodingException e) {
+                    throw new RuntimeException("Failed to encode URI", e);
+                }
+                brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
+                    + dataDirectory;
+            } else {
+                brokerURL = "tcp://" + property;
+            }
+            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
+            connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
+            jmsTemplate = new JmsTemplate(connectionFactory);
+        } else {
+            log.trace("messageListener already defined");
+        }
+    }
 
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
