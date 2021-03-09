@@ -126,8 +126,7 @@ public class EventEngine {
     private synchronized void initializeIfNeeded() {
         if (jmsTemplate == null) {
             log.info("creating connection factory");
-			String property = Context.getRegisteredComponent("adminService", AdministrationService.class)
-					.getGlobalProperty("activeMQ.externalUrl");
+			String property = getExternalUrl();
             String brokerURL;
             if (property == null || property.isEmpty()) {
                 String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
@@ -148,6 +147,17 @@ public class EventEngine {
         } else {
             log.trace("messageListener already defined");
         }
+    }
+    
+    private String getExternalUrl() {
+    	try {
+    		return Context.getRegisteredComponent("adminService", AdministrationService.class)
+					.getGlobalProperty("activeMQ.externalUrl");
+    	}
+    	catch (NullPointerException ex) {
+    		log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting" , ex);
+    	}
+    	return null;
     }
 
 	/**
