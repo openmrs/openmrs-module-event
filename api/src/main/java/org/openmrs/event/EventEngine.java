@@ -123,13 +123,18 @@ public class EventEngine {
 		});
 	}
 
+	private boolean disable(String storage) {
+		return new File(storage, "disabled").exists();
+	}
+
+
     private synchronized void initializeIfNeeded() {
-        if (jmsTemplate == null) {
+		String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
+		if (jmsTemplate == null && !disable(dataDirectory)) {
             log.info("creating connection factory");
 			String property = getExternalUrl();
             String brokerURL;
             if (property == null || property.isEmpty()) {
-                String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
                 try {
                     dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
                 }
