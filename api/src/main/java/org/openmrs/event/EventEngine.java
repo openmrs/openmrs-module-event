@@ -123,19 +123,19 @@ public class EventEngine {
 		});
 	}
 
-	private boolean disable(String storage) {
-		return new File(storage, "disabled").exists();
+	private boolean disable() {
+		return new File(OpenmrsUtil.getApplicationDataDirectory() + File.separator + "activemq-data", "disabled").exists();
 	}
 
 
     private synchronized void initializeIfNeeded() {
-		String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
-		if (jmsTemplate == null && !disable(dataDirectory)) {
+		if (jmsTemplate == null) {
             log.info("creating connection factory");
 			String property = getExternalUrl();
             String brokerURL;
             if (property == null || property.isEmpty()) {
-                try {
+				String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
+				try {
                     dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
                 }
                 catch (UnsupportedEncodingException e) {
@@ -288,39 +288,38 @@ public class EventEngine {
 	 * @see Event#subscribe(Destination, EventListener)
 	 */
 	public void subscribe(Destination destination, final EventListener listenerToRegister) {
-		
-		initializeIfNeeded();
-		
-		TopicConnection conn;
-		Topic topic = (Topic) destination;
-		
-		try {
-			conn = (TopicConnection) jmsTemplate.getConnectionFactory().createConnection();
-			TopicSession session = conn.createTopicSession(false, TopicSession.AUTO_ACKNOWLEDGE);
-			TopicSubscriber subscriber = session.createSubscriber(topic);
-			subscriber.setMessageListener(new MessageListener() {
-				
-				@Override
-				public void onMessage(Message message) {
-					listenerToRegister.onMessage(message);
+		if(!disable()) {
+			initializeIfNeeded();
+
+			TopicConnection conn;
+			Topic topic = (Topic) destination;
+
+			try {
+				conn = (TopicConnection) jmsTemplate.getConnectionFactory().createConnection();
+				TopicSession session = conn.createTopicSession(false, TopicSession.AUTO_ACKNOWLEDGE);
+				TopicSubscriber subscriber = session.createSubscriber(topic);
+				subscriber.setMessageListener(new MessageListener() {
+
+					@Override
+					public void onMessage(Message message) {
+						listenerToRegister.onMessage(message);
+					}
+				});
+
+				//Check if this is a duplicate and remove it
+				String key = topic.getTopicName() + DELIMITER + listenerToRegister.getClass().getName();
+				if (subscribers.containsKey(key)) {
+					unsubscribe(destination, listenerToRegister);
 				}
-			});
-			
-			//Check if this is a duplicate and remove it
-			String key = topic.getTopicName() + DELIMITER + listenerToRegister.getClass().getName();
-			if (subscribers.containsKey(key)) {
-				unsubscribe(destination, listenerToRegister);
+
+				subscribers.put(key, subscriber);
+				conn.start();
+
+			} catch (JMSException e) {
+				// TODO Auto-generated catch block. Do something smarter here.
+				e.printStackTrace();
 			}
-			
-			subscribers.put(key, subscriber);
-			conn.start();
-			
 		}
-		catch (JMSException e) {
-			// TODO Auto-generated catch block. Do something smarter here.
-			e.printStackTrace();
-		}
-		
 		//		List<EventListener> currentListeners = listeners.get(key);
 		//
 		//		if (currentListeners == null) {
@@ -355,20 +354,20 @@ public class EventEngine {
 	 * @see Event#unsubscribe(Destination, EventListener)
 	 */
 	public void unsubscribe(Destination dest, EventListener listener) {
-		
-		initializeIfNeeded();
-		
-		if (dest != null) {
-			Topic topic = (Topic) dest;
-			try {
-				String key = topic.getTopicName() + DELIMITER + listener.getClass().getName();
-				if (subscribers.get(key) != null)
-					subscribers.get(key).close();
-				
-				subscribers.remove(key);
-			}
-			catch (JMSException e) {
-				log.error("Failed to unsubscribe from the specified destination:", e);
+		if(!disable()) {
+			initializeIfNeeded();
+
+			if (dest != null) {
+				Topic topic = (Topic) dest;
+				try {
+					String key = topic.getTopicName() + DELIMITER + listener.getClass().getName();
+					if (subscribers.get(key) != null)
+						subscribers.get(key).close();
+
+					subscribers.remove(key);
+				} catch (JMSException e) {
+					log.error("Failed to unsubscribe from the specified destination:", e);
+				}
 			}
 		}
 	}
