@@ -35,9 +35,10 @@ import org.openmrs.event.EventEngineUtil;
 import org.openmrs.event.MockEventListener;
 import org.openmrs.event.MockNestedService;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
-import org.springframework.test.annotation.NotTransactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-@SuppressWarnings("deprecation")
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	
 	private static EventEngine eventEngine;
@@ -55,11 +56,11 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 
 
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnCreate() throws Exception {
 		Concept concept = new Concept();
 		ConceptName name = new ConceptName("Name", Locale.ENGLISH);
 		concept.addName(name);
+		concept.addDescription(new ConceptDescription("Description", Locale.ENGLISH));
 		
 		Context.getConceptService().saveConcept(concept);
 		
@@ -67,7 +68,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnUpdate() throws Exception {
 		Concept concept = Context.getConceptService().getConcept(3);
 		final String newVersion = "new random version";
@@ -79,7 +79,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnUpdatingProxiedObject() throws Exception {
 		Concept concept = Context.getConceptService().getConcept(4);
 		ConceptClass conceptClass = concept.getConceptClass();
@@ -94,7 +93,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnCreatingObjects() throws Exception {
 		GlobalProperty gp1 = new GlobalProperty("1", "1");
 		GlobalProperty gp2 = new GlobalProperty("2", "2");
@@ -112,16 +110,14 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	 * @verifies fire event on updating User
 	 */
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnUpdatingUser() throws Exception {
 		User user = Context.getUserService().getUser(1);
-		Context.getUserService().saveUser(user, "user");
+		Context.getUserService().saveUser(user);
 		
 		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), user);
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnWhenUpdatingASubclass() throws Exception {
 		Patient patient = Context.getPatientService().getPatient(2);
 		patient.setGender("F");
@@ -129,9 +125,8 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		
 		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
 	}
-	
+
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnCreatingAGlobalProperty() throws Exception {
 		MockEventListener listener = new MockEventListener(1);
 		eventEngine.subscribe(GlobalProperty.class, null, listener);
@@ -146,7 +141,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	 * @throws Exception
 	 */
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnEditingAGlobalProperty() throws Exception {
 		//create a test GP
 		AdministrationService as = Context.getAdministrationService();
@@ -159,7 +153,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventWhenAnElementIsAddedToAChildCollection() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(5089);
@@ -172,11 +165,11 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventWhenAnElementIsRemovedFromAChildCollection() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(5497);
 		Assert.assertTrue(concept.getDescriptions().size() > 0);
+		concept.addDescription(new ConceptDescription("Description", Locale.ENGLISH));
 		concept.removeDescription(concept.getDescription());
 		cs.saveConcept(concept);
 		
@@ -184,7 +177,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnRetiringAnObject() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		Concept concept = cs.getConcept(5497);
@@ -198,7 +190,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnUnRetiringAnObject() throws Exception {
 		EncounterService es = Context.getEncounterService();
 		EncounterType eType = es.getEncounterType(6);
@@ -212,7 +203,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnVoidingAnObject() throws Exception {
 		PatientService ps = Context.getPatientService();
 		PatientIdentifier pId = ps.getPatientIdentifier(1);
@@ -225,7 +215,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	@NotTransactional
 	public void shouldFireEventOnUnVoidingAnObject() throws Exception {
 		PatientService ps = Context.getPatientService();
 		PatientIdentifier pId = ps.getPatientIdentifier(6);
@@ -239,12 +228,12 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	}
 
     @Test
-    @NotTransactional
     public void shouldFireEventsOnNestedTransactions() throws Exception {
 
         Concept concept = new Concept();
         ConceptName name = new ConceptName("Name", Locale.ENGLISH);
         concept.addName(name);
+		concept.addDescription(new ConceptDescription("Description", Locale.ENGLISH));
 
         Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
 
@@ -255,12 +244,12 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     }
 
     @Test
-    @NotTransactional
     public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
 
         Concept concept = new Concept();
-        ConceptName name = new ConceptName("Name", Locale.ENGLISH);
+        ConceptName name = new ConceptName("Name1", Locale.ENGLISH);
         concept.addName(name);
+		concept.addDescription(new ConceptDescription("Description", Locale.ENGLISH));
 
         try {
             Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
@@ -275,7 +264,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     }
 
     @Test
-    @NotTransactional
     public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
 
         Concept concept = new Concept();
@@ -294,7 +282,6 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
     }
 
     @Test
-    @NotTransactional
     public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
 
         Concept concept = new Concept();

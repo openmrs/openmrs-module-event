@@ -21,6 +21,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.Concept;
+import org.openmrs.ConceptDescription;
 import org.openmrs.ConceptName;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.annotation.Handler;
@@ -32,9 +33,10 @@ import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.NotTransactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
-@SuppressWarnings("deprecation")
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 
 	@Autowired
@@ -53,7 +55,6 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link EventActivator#started()}
 	 */
 	@Test
-	@NotTransactional
 	@Verifies(value = "should create subscriptions for all subscribable event listeners", method = "started()")
 	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners()
 			throws Exception {
@@ -64,6 +65,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		Concept concept2 = new Concept();
 		ConceptName name2 = new ConceptName("Name2", Locale.ENGLISH);
 		concept2.addName(name2);
+		concept2.addDescription(new ConceptDescription("Description2", Locale.ENGLISH));
 		cs.saveConcept(concept2);
 		cs.purgeConcept(concept2);
 
@@ -84,6 +86,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
 		concept3.addName(name3);
+		concept3.addDescription(new ConceptDescription("Description3", Locale.ENGLISH));
 		cs.saveConcept(concept3);
 		cs.purgeConcept(concept3);
 
@@ -98,7 +101,6 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link EventActivator#stopped()}
 	 */
 	@Test
-	@NotTransactional
 	@Verifies(value = "should shutdown the jms connection", method = "stopped()")
 	public void stopped_shouldShutdownTheJmsConnection() throws Exception {
 		listener.setExpectedEventsCount(2);
@@ -113,6 +115,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		Concept concept3 = new Concept();
 		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
 		concept3.addName(name3);
+		concept3.addDescription(new ConceptDescription("Description3", Locale.ENGLISH));
 		cs.saveConcept(concept3);
 		cs.purgeConcept(concept3);
 
@@ -130,6 +133,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		Concept concept4 = new Concept();
 		ConceptName name4 = new ConceptName("Name4", Locale.ENGLISH);
 		concept4.addName(name4);
+		concept4.addDescription(new ConceptDescription("Description4", Locale.ENGLISH));
 		cs.saveConcept(concept4);
 		cs.purgeConcept(concept4);
 
