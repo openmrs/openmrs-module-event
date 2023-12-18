@@ -32,7 +32,6 @@ import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.test.annotation.NotTransactional;
 
-@SuppressWarnings("deprecation")
 public class EventTest extends BaseModuleContextSensitiveTest {
 	
 	/**
