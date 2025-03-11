@@ -13,15 +13,17 @@
  */
 package org.openmrs.event;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.Serializable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.openmrs.OpenmrsObject;
+import org.openmrs.api.APIException;
+import org.openmrs.api.context.Context;
+import org.openmrs.util.OpenmrsUtil;
+import org.springframework.jms.connection.SingleConnectionFactory;
+import org.springframework.jms.core.JmsTemplate;
+import org.springframework.jms.core.MessageCreator;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -33,19 +35,13 @@ import javax.jms.Topic;
 import javax.jms.TopicConnection;
 import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
-
-import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.openmrs.OpenmrsObject;
-import org.openmrs.api.APIException;
-import org.openmrs.api.AdministrationService;
-import org.openmrs.api.context.Context;
-import org.openmrs.util.OpenmrsUtil;
-import org.springframework.jms.connection.SingleConnectionFactory;
-import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Used by {@link Event}.
@@ -65,7 +61,7 @@ public class EventEngine {
 	protected List<Class<?>> eventClasses = new ArrayList<Class<?>>();
 
 	/**
-	 * @see Event#fireAction(String, OpenmrsObject)
+	 * @see Event#fireAction(String, Object)
 	 */
 	public void fireAction(String action, final Object object) {
 		Destination key = getDestination(object.getClass(), action);
@@ -73,7 +69,7 @@ public class EventEngine {
 	}
 
 	/**
-	 * @see Event#fireEvent(Destination, OpenmrsObject)
+	 * @see Event#fireEvent(Destination, Object)
 	 */
 	public void fireEvent(final Destination dest, final Object object) {
 		EventMessage eventMessage = new EventMessage();
@@ -130,39 +126,37 @@ public class EventEngine {
 
     private synchronized void initializeIfNeeded() {
 		if (jmsTemplate == null) {
-            log.info("creating connection factory");
-			String property = getExternalUrl();
-            String brokerURL;
-            if (property == null || property.isEmpty()) {
-				String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
-				try {
-                    dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
-                }
-                catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException("Failed to encode URI", e);
-                }
-                brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
-                    + dataDirectory;
-            } else {
-                brokerURL = "tcp://" + property;
-            }
+            log.warn("Initializing ActiveMQ JMS template");
+			String brokerURL = getBrokerUrl();
+			log.warn("Configured activeMQ broker URL: " + brokerURL);
             ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
             connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
             jmsTemplate = new JmsTemplate(connectionFactory);
         } else {
-            log.trace("messageListener already defined");
+            log.trace("ActiveMQ JMS template already initialized");
         }
     }
     
-    private String getExternalUrl() {
+    private String getBrokerUrl() {
     	try {
-    		return Context.getRegisteredComponent("adminService", AdministrationService.class)
-					.getGlobalProperty("activeMQ.externalUrl");
+			String propertyName = "activeMQ.externalUrl";
+			String brokerUrl = Context.getRuntimeProperties().getProperty(propertyName);
+			if (StringUtils.isBlank(brokerUrl)) {
+				brokerUrl = Context.getAdministrationService().getGlobalProperty(propertyName);
+			}
+			if (StringUtils.isNotBlank(brokerUrl) && !brokerUrl.contains("://")) {
+				brokerUrl = "tcp://" + brokerUrl;
+			}
+			if (StringUtils.isBlank(brokerUrl)) {
+				String dataDirParam = "broker.dataDirectory={dataDir}" + File.separator + "activemq-data";
+				brokerUrl = "vm://localhost?broker.persistent=true&broker.useJmx=false&" + dataDirParam;
+			}
+			brokerUrl = brokerUrl.replace("{dataDir}", OpenmrsUtil.getApplicationDataDirectory());
+			return brokerUrl;
     	}
-    	catch (NullPointerException ex) {
-    		log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting" , ex);
+    	catch (Exception e) {
+			throw new IllegalStateException("Unable to get broker URL", e);
     	}
-    	return null;
     }
 
 	/**
