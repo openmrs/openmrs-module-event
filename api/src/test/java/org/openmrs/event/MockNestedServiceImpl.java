@@ -30,7 +30,12 @@ public class MockNestedServiceImpl extends BaseOpenmrsService implements MockNes
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void innerTransaction(boolean rollback) {
         Patient patient = Context.getPatientService().getPatient(2);
-        patient.setGender("F");
+        if (patient.getGender().equals("M")) {
+            patient.setGender("F");
+        }
+        else {
+            patient.setGender("M");
+        }
         Context.getPatientService().savePatient(patient);
 
         if (rollback) {

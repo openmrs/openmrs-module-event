@@ -13,19 +13,23 @@
 		and add hibernate mappings to the classpath since omod is not packaged yet -->
 		<!-- 
 		 -->
-	<bean id="sessionFactory"
-		class="org.openmrs.api.db.hibernate.HibernateSessionFactoryBean">
-		<property name="configLocations">
-			<list>
-				<value>classpath:hibernate.cfg.xml</value>
+    <bean id="sessionFactory" class="org.openmrs.api.db.hibernate.HibernateSessionFactoryBean">
+        <property name="configLocations">
+            <list>
+                <value>classpath:hibernate.cfg.xml</value>
                 <value>classpath:test-hibernate.cfg.xml</value>
-			</list>
-		</property>
-		<property name="mappingJarLocations">
-			<ref bean="mappingJarResources" />
-		</property>
-		<!-- default properties must be set in the hibernate.default.properties -->
-	</bean>
+            </list>
+        </property>
+        <property name="mappingJarLocations">
+            <ref bean="mappingJarResources" />
+        </property>
+        <property name="packagesToScan">
+            <list>
+                <value>org.openmrs</value>
+            </list>
+        </property>
+        <!--  default properties must be set in the hibernate.default.properties -->
+    </bean>
 
     <!-- Add mock services for nested transaction testing-->
     <bean id="mockNestedService" class="${project.parent.groupId}.${project.parent.artifactId}.MockNestedServiceImpl"></bean>
