@@ -4,7 +4,7 @@
 	<parent>
 		<groupId>org.openmrs</groupId>
 		<artifactId>event</artifactId>
-		<version>2.11.0-SNAPSHOT</version>
+		<version>3.0.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>event-api</artifactId>
@@ -13,15 +13,7 @@
 	<description>API project for EventQueue</description>
 
 	<dependencies>
-	
-		<!-- 
-		Add other dependencies from parent's pom:
-		<dependency>
-			<groupId>org.other.library</groupId> 
-			<artifactId>library-name</artifactId>
-		</dependency> 
-		-->
-		
+
 			<dependency>
 				<groupId>org.apache.activemq</groupId>
 				<artifactId>activemq-core</artifactId>
@@ -112,39 +104,7 @@
 						<artifactId>spring-oxm</artifactId>
 					</exclusion>
 				</exclusions>
-			</dependency>	
-
-		<!-- Begin OpenMRS core -->
-		
-		<dependency>
-			<groupId>org.openmrs.api</groupId>
-			<artifactId>openmrs-api</artifactId>
-			<type>jar</type>
-			<scope>provided</scope>
-		</dependency>
-		
-		<dependency>
-			<groupId>org.openmrs.web</groupId>
-			<artifactId>openmrs-web</artifactId>
-			<type>jar</type>
-			<scope>provided</scope>
-		</dependency>
-
-        <dependency>
-            <groupId>org.openmrs.api</groupId>
-            <artifactId>openmrs-api</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.openmrs.test</groupId>
-            <artifactId>openmrs-test</artifactId>
-            <type>pom</type>
-            <scope>test</scope>
-        </dependency>
-				
-		<!-- End OpenMRS core -->
+			</dependency>
 		
 	</dependencies>
 	

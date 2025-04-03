@@ -13,10 +13,6 @@
  */
 package org.openmrs.module.event;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,20 +21,28 @@ import org.openmrs.ConceptName;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.ConceptService;
-import org.openmrs.api.context.Context;
 import org.openmrs.event.Event.Action;
 import org.openmrs.event.MockEventListener;
 import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.NotTransactional;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 
 @SuppressWarnings("deprecation")
 public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 
 	@Autowired
 	TestSubscribableEventListener listener;
+
+	@Autowired
+	ConceptService conceptService;
 
 	@Before
 	public void before() {
@@ -53,19 +57,15 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link EventActivator#started()}
 	 */
 	@Test
-	@NotTransactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@Verifies(value = "should create subscriptions for all subscribable event listeners", method = "started()")
-	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners()
-			throws Exception {
-		ConceptService cs = Context.getConceptService();
-		Concept concept = cs.getConcept(3);
+	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners() throws Exception {
+		Concept concept = conceptService.getConcept(3);
 
-		cs.saveConcept(concept);
-		Concept concept2 = new Concept();
-		ConceptName name2 = new ConceptName("Name2", Locale.ENGLISH);
-		concept2.addName(name2);
-		cs.saveConcept(concept2);
-		cs.purgeConcept(concept2);
+		conceptService.saveConcept(concept);
+		Concept concept2 = randomConcept();
+		conceptService.saveConcept(concept2);
+		conceptService.purgeConcept(concept2);
 
 		// sanity check
 		listener.waitForEvents();
@@ -78,14 +78,12 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		new EventActivator().started();
 
 		concept.setVersion("new version");
-		cs.saveConcept(concept);
+		conceptService.saveConcept(concept);
 
-		cs.saveConcept(concept);
-		Concept concept3 = new Concept();
-		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
-		concept3.addName(name3);
-		cs.saveConcept(concept3);
-		cs.purgeConcept(concept3);
+		conceptService.saveConcept(concept);
+		Concept concept3 = randomConcept();
+		conceptService.saveConcept(concept3);
+		conceptService.purgeConcept(concept3);
 
 		listener.waitForEvents();
 
@@ -98,23 +96,20 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	 * @see {@link EventActivator#stopped()}
 	 */
 	@Test
-	@NotTransactional
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	@Verifies(value = "should shutdown the jms connection", method = "stopped()")
 	public void stopped_shouldShutdownTheJmsConnection() throws Exception {
 		listener.setExpectedEventsCount(2);
 
 		new EventActivator().started();
 
-		ConceptService cs = Context.getConceptService();
-		Concept concept = cs.getConcept(3);
+		Concept concept = conceptService.getConcept(3);
 		concept.setVersion("new version");
-		cs.saveConcept(concept);
+		conceptService.saveConcept(concept);
 
-		Concept concept3 = new Concept();
-		ConceptName name3 = new ConceptName("Name3", Locale.ENGLISH);
-		concept3.addName(name3);
-		cs.saveConcept(concept3);
-		cs.purgeConcept(concept3);
+		Concept concept3 = randomConcept();
+		conceptService.saveConcept(concept3);
+		conceptService.purgeConcept(concept3);
 
 		listener.waitForEvents();
 
@@ -125,13 +120,11 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		new EventActivator().stopped();
 
 		concept.setVersion("another version");
-		cs.saveConcept(concept);
+		conceptService.saveConcept(concept);
 
-		Concept concept4 = new Concept();
-		ConceptName name4 = new ConceptName("Name4", Locale.ENGLISH);
-		concept4.addName(name4);
-		cs.saveConcept(concept4);
-		cs.purgeConcept(concept4);
+		Concept concept4 = randomConcept();
+		conceptService.saveConcept(concept4);
+		conceptService.purgeConcept(concept4);
 
 		// there should have been no changes
 		Assert.assertEquals(1, listener.getCreatedCount());
@@ -140,12 +133,8 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	}
 
 	@Handler
-	public static class TestSubscribableEventListener extends MockEventListener
-			implements SubscribableEventListener {
+	public static class TestSubscribableEventListener extends MockEventListener implements SubscribableEventListener {
 
-		/**
-		 * @param expectedEventsCount
-		 */
 		public TestSubscribableEventListener() {
 			super(0);
 		}
@@ -155,7 +144,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		 */
 		@Override
 		public List<Class<? extends OpenmrsObject>> subscribeToObjects() {
-			List<Class<? extends OpenmrsObject>> clazzes = new ArrayList<Class<? extends OpenmrsObject>>();
+			List<Class<? extends OpenmrsObject>> clazzes = new ArrayList<>();
 			clazzes.add(Concept.class);
 			return clazzes;
 		}
@@ -165,10 +154,19 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		 */
 		@Override
 		public List<String> subscribeToActions() {
-			List<String> actions = new ArrayList<String>();
+			List<String> actions = new ArrayList<>();
 			actions.add(Action.CREATED.toString());
 			actions.add(Action.UPDATED.toString());
 			return actions;
 		}
+	}
+
+	Concept randomConcept() {
+		Concept concept = new Concept();
+		ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+		concept.addName(name);
+		concept.setDatatype(conceptService.getConceptDatatypeByName("N/A"));
+		concept.setConceptClass(conceptService.getConceptClassByName("Misc"));
+		return concept;
 	}
 }
