@@ -34,7 +34,7 @@
 	</modules>
 
 	<properties>
-		<openmrsVersion>2.5.7</openmrsVersion>
+		<openmrsVersion>2.5.0</openmrsVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
