@@ -37,6 +37,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("deprecation")
@@ -118,7 +119,7 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		User user = Context.getUserService().getUser(1);
 		Context.getUserService().saveUser(user);
 		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), user);
+		verify(eventEngine, times(2)).fireAction(Event.Action.UPDATED.name(), user);
 	}
 	
 	@Test
