@@ -4,7 +4,7 @@
 
 	<groupId>org.openmrs</groupId>
 	<artifactId>event</artifactId>
-	<version>4.0.0-SNAPSHOT</version>
+	<version>4.0.0-alpha</version>
   
 	<packaging>pom</packaging>
 	<name>Event Module</name>
@@ -26,7 +26,7 @@
 		<connection>scm:git:git@github.com:openmrs/openmrs-module-event.git</connection>
 		<developerConnection>scm:git:git@github.com:openmrs/openmrs-module-event.git</developerConnection>
 		<url>https://github.com/openmrs/openmrs-module-event/</url>
-	  <tag>HEAD</tag>
+	  <tag>4.0.0-alpha</tag>
   </scm>
 
 	<modules>
