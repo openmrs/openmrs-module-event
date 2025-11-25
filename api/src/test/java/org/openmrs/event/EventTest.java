@@ -29,6 +29,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.jms.Destination;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -37,7 +40,7 @@ import java.util.UUID;
 public class EventTest extends BaseModuleContextSensitiveTest {
 	
 	/**
-	 * @see {@link Event#subscribe(Class, String, EventListener)}
+	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -65,9 +68,39 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		Assertions.assertEquals(1, listener.getUpdatedCount());
 		Assertions.assertEquals(0, listener.getDeletedCount());
 	}
+
+    /**
+     * @see Event#subscribe(Class, Collection, EventListener)
+     */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Verifies(value = "should subscribe only to the specified actions", method = "subscribe(Class<OpenmrsObject>,Collection,EventListener)")
+    public void subscribe_shouldSubscribeOnlyToTheSpecifiedActions() throws Exception {
+        ConceptService cs = Context.getConceptService();
+        MockEventListener listener = new MockEventListener(3); //let's wait for 3 messages
+        Event.subscribe(Concept.class, Arrays.asList(Action.CREATED.toString(), Action.UPDATED.toString()), listener);
+
+        Concept concept = new Concept();
+        ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+        concept.addName(name);
+        concept.setDatatype(cs.getConceptDatatypeByName("N/A"));
+        concept.setConceptClass(cs.getConceptClassByName("Misc"));
+        cs.saveConcept(concept);
+
+        concept.setVersion("new random version");
+        cs.saveConcept(concept);
+
+        cs.purgeConcept(concept);
+
+        listener.waitForEvents();
+
+        Assertions.assertEquals(1, listener.getCreatedCount());
+        Assertions.assertEquals(1, listener.getUpdatedCount());
+        Assertions.assertEquals(0, listener.getDeletedCount());
+    }
 	
 	/**
-	 * @see {@link Event#subscribe(Class,String,EventListener)}
+	 * @see Event#subscribe(Class,String,EventListener)
 	 */
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -75,7 +108,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	public void subscribe_shouldSubscribeToEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(6);
-		Event.subscribe(Concept.class, null, listener);
+		Event.subscribe(Concept.class, (String) null, listener);
 		
 		Concept concept = new Concept();
 		concept.setDatatype(cs.getConceptDatatypeByName("N/A"));
@@ -154,9 +187,9 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	public void unsubscribe_shouldUnsubscribeForEveryActionIfActionIsNullForTheEntireClassHierarchy() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(6);
-		Event.subscribe(Concept.class, null, listener);
+		Event.subscribe(Concept.class, (String) null, listener);
 		
-		Event.unsubscribe(Concept.class, null, listener);
+		Event.unsubscribe(Concept.class, (Event.Action) null, listener);
 		Concept concept2 = new Concept();
 		ConceptName name2 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
 		concept2.addName(name2);
@@ -189,7 +222,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	/**
-	 * @see {@link Event#unsubscribe(Class,Action,EventListener)}
+	 * @see Event#unsubscribe(Class,Action,EventListener)
 	 */
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -197,7 +230,7 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 	public void unsubscribe_shouldUnsubscribeOnlyForTheSpecifiedAction() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(1);
-		Event.subscribe(Concept.class, null, listener);
+		Event.subscribe(Concept.class, (String) null, listener);
 		
 		Concept concept1 = new Concept();
 		ConceptName name1 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
@@ -224,6 +257,43 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		Assertions.assertEquals(1, listener.getCreatedCount());
 		Assertions.assertEquals(1, listener.getDeletedCount());
 	}
+
+    /**
+     * @see Event#unsubscribe(Class,Collection,EventListener)
+     */
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Verifies(value = "should unsubscribe only for the specified actions", method = "unsubscribe(Class<OpenmrsObject>,Collection,EventListener)")
+    public void unsubscribe_shouldUnsubscribeOnlyForTheSpecifiedActions() throws Exception {
+        ConceptService cs = Context.getConceptService();
+        MockEventListener listener = new MockEventListener(1);
+        Event.subscribe(Concept.class, (String) null, listener);
+
+        Concept concept1 = new Concept();
+        ConceptName name1 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+        concept1.addName(name1);
+        concept1.setDatatype(cs.getConceptDatatypeByName("N/A"));
+        concept1.setConceptClass(cs.getConceptClassByName("Misc"));
+        cs.saveConcept(concept1);
+
+        listener.waitForEvents();
+
+        Assertions.assertEquals(1, listener.getCreatedCount());
+
+        Event.unsubscribe(Concept.class, Collections.singletonList(Action.CREATED), listener);
+        Concept concept2 = new Concept();
+        ConceptName name2 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+        concept2.addName(name2);
+        concept2.setDatatype(cs.getConceptDatatypeByName("N/A"));
+        concept2.setConceptClass(cs.getConceptClassByName("Misc"));
+        cs.saveConcept(concept2);
+        cs.purgeConcept(concept1);
+
+        Thread.sleep(100);
+
+        Assertions.assertEquals(1, listener.getCreatedCount());
+        Assertions.assertEquals(1, listener.getDeletedCount());
+    }
 	
 	/**
 	 * @see {@link Event#unsubscribe(Destination,EventListener)}

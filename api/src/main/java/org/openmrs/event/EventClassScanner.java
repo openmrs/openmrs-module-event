@@ -17,66 +17,80 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.openmrs.api.APIException;
 import org.openmrs.util.OpenmrsClassLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.core.type.classreading.SimpleMetadataReaderFactory;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.core.type.filter.TypeFilter;
 
 /**
  * Utility class that searches the classpath for classes of a given type and its subclasses
  */
-public class EventClassScanner {
+public class EventClassScanner implements AutoCloseable {
 	
 	private static final String PATTERN = "classpath*:org/openmrs/**/*.class";
+
+    private final ClassLoader classLoader;
+
+	private final MetadataReaderFactory metadataReaderFactory;
 	
-	private static final EventClassScanner INSTANCE = new EventClassScanner();
+	private final ResourcePatternResolver resourceResolver;
+
+    private volatile Resource[] resources = null;
 	
-	private MetadataReaderFactory metadataReaderFactory;
-	
-	private ResourcePatternResolver resourceResolver;
-	
-	private EventClassScanner() {
-		this.metadataReaderFactory = new SimpleMetadataReaderFactory(OpenmrsClassLoader.getInstance());
-		this.resourceResolver = new PathMatchingResourcePatternResolver(OpenmrsClassLoader.getInstance());
+	public EventClassScanner() {
+        this(OpenmrsClassLoader.getInstance());
 	}
-	
-	public synchronized static EventClassScanner getInstance() {
-		return INSTANCE;
-	}
-	
-	/**
+
+    public EventClassScanner(ClassLoader classLoader) {
+        this(classLoader, new CachingMetadataReaderFactory(classLoader), new PathMatchingResourcePatternResolver(classLoader));
+    }
+
+    public EventClassScanner(ClassLoader classLoader, MetadataReaderFactory metadataReaderFactory, ResourcePatternResolver resourceResolver) {
+        this.classLoader = classLoader;
+        this.metadataReaderFactory = metadataReaderFactory;
+        this.resourceResolver = resourceResolver;
+    }
+
+    @Override
+    public void close() {
+        if (metadataReaderFactory instanceof CachingMetadataReaderFactory) {
+            ((CachingMetadataReaderFactory) metadataReaderFactory).clearCache();
+        }
+    }
+
+    /**
 	 * Searches for classes extending or implementing the given type.
 	 * 
 	 * @param type the type to match
 	 * @return the list of found classes
-	 * @throws IOException
-	 * @throws ClassNotFoundException
-	 */
+     */
 	public <T> List<Class<? extends T>> getClasses(Class<? extends T> type) throws IOException, ClassNotFoundException {
-		
-		List<Class<? extends T>> types = new ArrayList<Class<? extends T>>();
+        if (resources == null) {
+            synchronized (this) {
+                if (resources == null) {
+                    resources = resourceResolver.getResources(PATTERN);
+                    if (metadataReaderFactory instanceof CachingMetadataReaderFactory) {
+                        ((CachingMetadataReaderFactory) metadataReaderFactory).setCacheLimit(resources.length);
+                    }
+                }
+            }
+        }
+
+		List<Class<? extends T>> types = new ArrayList<>();
 		TypeFilter typeFilter = new AssignableTypeFilter(type);
-		Resource[] resources = resourceResolver.getResources(PATTERN);
-		OpenmrsClassLoader classLoader = OpenmrsClassLoader.getInstance();
-		
+
 		for (Resource resource : resources) {
 			MetadataReader metadataReader = metadataReaderFactory.getMetadataReader(resource);
-			if (typeFilter.match(metadataReader, metadataReaderFactory)) {
-				if (metadataReader.getClassMetadata().isConcrete()) {
-					String classname = metadataReader.getClassMetadata().getClassName();
-					try {
-						types.add((Class<? extends T>) classLoader.loadClass(classname));
-					}
-					catch (ClassNotFoundException e) {
-						throw new APIException("Class cannot be loaded: " + classname, e);
-					}
-				}
+            // we call isConcrete() here first since the metadataReader always initializes the class metadata,
+            // so this is should be quicker than checking if the type filter matches
+			if (metadataReader.getClassMetadata().isConcrete() && typeFilter.match(metadataReader, metadataReaderFactory)) {
+                String classname = metadataReader.getClassMetadata().getClassName();
+                types.add((Class<? extends T>) classLoader.loadClass(classname));
 			}
 		}
 		

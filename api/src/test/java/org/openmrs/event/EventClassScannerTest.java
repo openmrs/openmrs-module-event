@@ -25,7 +25,7 @@ import org.openmrs.ConceptNumeric;
 
 public class EventClassScannerTest {
 	
-	private EventClassScanner classScanner = EventClassScanner.getInstance();
+	private final EventClassScanner classScanner = new EventClassScanner();
 	
 	@Test
 	public void shouldGetClassesThatMatchTheSpecifiedType() throws Exception {
@@ -35,5 +35,4 @@ public class EventClassScannerTest {
 		assertTrue(classes.contains(ConceptNumeric.class));
 		assertTrue(classes.contains(ConceptComplex.class));
 	}
-	
 }
