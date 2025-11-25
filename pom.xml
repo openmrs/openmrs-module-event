@@ -97,10 +97,17 @@
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
-					<version>3.10.1</version>
+					<version>3.14.1</version>
 					<configuration>
 						<target>8</target>
 						<source>8</source>
+						<annotationProcessorPaths>
+							<path>
+								<groupId>org.projectlombok</groupId>
+								<artifactId>lombok</artifactId>
+								<version>${lombokVersion}</version>
+							</path>
+						</annotationProcessorPaths>
 						<encoding>UTF-8</encoding>
 					</configuration>
 				</plugin>
