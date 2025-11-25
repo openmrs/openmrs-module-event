@@ -15,6 +15,9 @@ package org.openmrs.event;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 /**
  * Allows listeners to subscribe to possible events. When the event occurs, the listener is called.
@@ -27,7 +30,17 @@ public class Event {
 	 * These are the core-defined actions that go in topics
 	 */
 	public enum Action {
-		CREATED, UPDATED, RETIRED, UNRETIRED, VOIDED, UNVOIDED, PURGED
+		CREATED,
+        UPDATED,
+        RETIRED,
+        UNRETIRED,
+        VOIDED,
+        UNVOIDED,
+        PURGED;
+
+        public static Collection<String> getActionNames() {
+            return Arrays.stream(Action.values()).map(Action::name).collect(Collectors.toList());
+        }
 	};
 	
 	/**
@@ -48,7 +61,6 @@ public class Event {
 	 * @param topicName
 	 * @param eventMessage
 	 * @see {@link Action}, {@link EventMessage}
-	 * @should fire an event for the action and class with the specified message
 	 */
 	public static void fireEvent(String topicName, EventMessage eventMessage) {
 		eventEngine.fireEvent(topicName, eventMessage);
@@ -67,6 +79,20 @@ public class Event {
 	public static void subscribe(Class<?> clazz, String action, EventListener listener) {
 		eventEngine.subscribe(clazz, action, listener);
 	}
+
+    /**
+     * Creates a subscription for the specified class and set of actions, if actions are null, the
+     * subscription is created for all the actions
+     *
+     * @param clazz
+     * @param actions
+     * @should subscribe only to the specified action
+     * @should subscribe to every action if action is null
+     * @should not subscribe duplicate event listeners
+     */
+    public static void subscribe(Class<?> clazz, Collection<String> actions, EventListener listener) {
+        eventEngine.subscribe(clazz, actions, listener);
+    }
 	
 	/**
 	 * Creates a subscription to the topic with the specified name
@@ -85,12 +111,22 @@ public class Event {
 	 * @param clazz if null, all objects are unsubscribed
 	 * @param action if null, all actions are unsubscribed
 	 * @param listener the given listener to unsubscribe
-	 * @should unsubscribe only for the specified action
-	 * @should unsubscribe for every action if action is null
 	 */
 	public static void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
 		eventEngine.unsubscribe(clazz, action, listener);
 	}
+
+    /**
+     * Removes the subscription associated to the specified class and set of actions, if action is null all
+     * subscriptions associated to the class are dropped
+     *
+     * @param clazz if null, all objects are unsubscribed
+     * @param actions if null, all actions are unsubscribed
+     * @param listener the given listener to unsubscribe
+     */
+    public static void unsubscribe(Class<?> clazz, Collection<Event.Action> actions, EventListener listener) {
+        eventEngine.unsubscribe(clazz, actions, listener);
+    }
 	
 	/**
 	 * Removes the subscription from the topic with the specified name

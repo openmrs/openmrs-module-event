@@ -102,7 +102,7 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 		GlobalProperty gp1 = new GlobalProperty("1", "1");
 		GlobalProperty gp2 = new GlobalProperty("2", "2");
 		MockEventListener listener = new MockEventListener(2);
-		Event.subscribe(GlobalProperty.class, null, listener);
+		Event.subscribe(GlobalProperty.class, (String) null, listener);
 		
 		Context.getAdministrationService().saveGlobalProperties(Arrays.asList(gp1, gp2));
 		
@@ -136,7 +136,7 @@ public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public void shouldFireEventOnCreatingAGlobalProperty() throws Exception {
 		MockEventListener listener = new MockEventListener(1);
-		eventEngine.subscribe(GlobalProperty.class, null, listener);
+		eventEngine.subscribe(GlobalProperty.class, (String) null, listener);
 		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("property", "value"));
 		
 		listener.waitForEvents();

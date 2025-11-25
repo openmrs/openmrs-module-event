@@ -18,34 +18,34 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.MessageListener;
-import javax.jms.Session;
 import javax.jms.Topic;
 import javax.jms.TopicConnection;
 import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.APIException;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.core.MessageCreator;
 
 /**
  * Used by {@link Event}.
@@ -54,7 +54,7 @@ public class EventEngine {
 
 	protected final static String DELIMITER = ":";
 
-	protected static Log log = LogFactory.getLog(Event.class);
+	protected static Logger log = LoggerFactory.getLogger(Event.class);
 
 	protected JmsTemplate jmsTemplate = null;
 
@@ -62,10 +62,52 @@ public class EventEngine {
 
 	protected SingleConnectionFactory connectionFactory;
 
-	protected List<Class<?>> eventClasses = new ArrayList<Class<?>>();
+    /**
+     * This inner class holds the context for managing a subscription. Basically it serves to simplify using the
+     * {@link EventClassScanner} to manage subscriptions for a specific class
+     *
+     * @param <T>
+     */
+    private static class SubscriptionContext<T> implements AutoCloseable {
+        private volatile Collection<Class<? extends T>> eventClasses = null;
+        private final EventClassScanner classScanner;
+        private final Class<T> clazz;
+
+        public SubscriptionContext(Class<T> clazz) {
+            this.classScanner = EventClassScannerThreadHolder.getCurrentEventClassScanner().orElseGet(EventClassScanner::new);
+            this.clazz = clazz;
+        }
+
+        @Override
+        public void close() {
+            try {
+                if (eventClasses != null) {
+                    eventClasses.clear();
+                }
+            } finally {
+                classScanner.close();
+            }
+        }
+
+        public Class<T> getClazz() {
+            return clazz;
+        }
+
+        public Collection<Class<? extends T>> getEventClasses() throws IOException, ClassNotFoundException {
+            if (eventClasses == null) {
+                synchronized (this) {
+                    if (eventClasses == null) {
+                        eventClasses = classScanner.getClasses(clazz);
+                    }
+                }
+            }
+
+            return eventClasses;
+        }
+    }
 
 	/**
-	 * @see Event#fireAction(String, OpenmrsObject)
+	 * @see Event#fireAction(String, Object) 
 	 */
 	public void fireAction(String action, final Object object) {
 		Destination key = getDestination(object.getClass(), action);
@@ -73,7 +115,7 @@ public class EventEngine {
 	}
 
 	/**
-	 * @see Event#fireEvent(Destination, OpenmrsObject)
+	 * @see Event#fireEvent(Destination, Object)
 	 */
 	public void fireEvent(final Destination dest, final Object object) {
 		EventMessage eventMessage = new EventMessage();
@@ -96,35 +138,26 @@ public class EventEngine {
 		doFireEvent(getDestination(topicName), eventMessage);
 	}
 
-	/**
-	 * @param dest
-	 * @param eventMessage
-	 */
 	private void doFireEvent(final Destination dest, final EventMessage eventMessage) {
-
 		initializeIfNeeded();
 
-		jmsTemplate.send(dest, new MessageCreator() {
+		jmsTemplate.send(dest, session -> {
+            if (log.isInfoEnabled())
+                log.info("Sending data " + eventMessage);
 
-			@Override
-			public Message createMessage(Session session) throws JMSException {
-				if (log.isInfoEnabled())
-					log.info("Sending data " + eventMessage);
+            MapMessage mapMessage = session.createMapMessage();
+            if (eventMessage != null) {
+                for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
+                    mapMessage.setObject(entry.getKey(), entry.getValue());
+                }
+            }
 
-				MapMessage mapMessage = session.createMapMessage();
-				if (eventMessage != null) {
-					for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
-						mapMessage.setObject(entry.getKey(), entry.getValue());
-					}
-				}
-
-				return mapMessage;
-			}
-		});
+            return mapMessage;
+        });
 	}
 
-	private boolean disable() {
-		return new File(OpenmrsUtil.getApplicationDataDirectory() + File.separator + "activemq-data", "disabled").exists();
+	private boolean enabled() {
+        return !OpenmrsUtil.getApplicationDataDirectoryAsFile().toPath().resolve("activemq-data").resolve("disabled").toFile().exists();
 	}
 
 
@@ -146,8 +179,9 @@ public class EventEngine {
             } else {
                 brokerURL = "tcp://" + property;
             }
+
             ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
-            connectionFactory = new SingleConnectionFactory(cf); // or CachingConnectionFactory ?
+            connectionFactory = new SingleConnectionFactory(cf);
             jmsTemplate = new JmsTemplate(connectionFactory);
         } else {
             log.trace("messageListener already defined");
@@ -168,44 +202,64 @@ public class EventEngine {
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
-	public void subscribe(Class<?> clazz, String action, EventListener listener) {
-		if (action != null) {
-			subscribeToClass(clazz, action, listener);
-		} else {
-			for (Event.Action a : Event.Action.values()) {
-				subscribeToClass(clazz, a.toString(), listener);
-			}
-		}
-		eventClasses.removeAll(eventClasses);
+	public <T> void subscribe(Class<T> clazz, String action, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
+        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+            if (action != null) {
+                subscribeToClass(context, Collections.singletonList(action), listener);
+                log.info("Subscribed to {} events for {}", action, clazz.getSimpleName());
+            } else {
+                subscribeToClass(context, Event.Action.getActionNames(), listener);
+                log.info("Subscribed to all events for {}", clazz.getSimpleName());
+            }
+        }
+
 	}
 
-	/**
+    /**
+     *
+     */
+    public <T> void subscribe(Class<T> clazz, Collection<String> actions, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
+        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+            if (actions != null) {
+                if (!actions.isEmpty()) {
+                    subscribeToClass(context, actions, listener);
+                    log.info("Subscribed to {} events for {}", StringUtils.join(actions, ','), clazz.getSimpleName());
+                }
+            } else {
+                subscribeToClass(context, Event.Action.getActionNames(), listener);
+            }
+        }
+    }
+
+    /**
 	 * Adds subscriptions to the topics that match the specified action and class including
 	 * subclasses
 	 *
-	 * @param clazz the class to match
-	 * @param action the action to match
+	 * @param context the current subscription context
+	 * @param actions the action(s) to match
 	 * @param listener the Listener subscribing to the topic
 	 */
-	private void subscribeToClass(Class<?> clazz, String action, EventListener listener) {
+	private <T> void subscribeToClass(SubscriptionContext<T> context, Collection<String> actions, EventListener listener) {
 		try {
-
-			if(eventClasses.isEmpty()){
-				eventClasses = EventClassScanner.getInstance().getClasses(clazz);
-			}
-
-			for (Class c : eventClasses) {
-				Destination dest = getDestination(c, action);
-				subscribe(dest, listener);
+			for (Class<? extends T> c : context.getEventClasses()) {
+                for (String action : actions) {
+                    Destination dest = getDestination(c, action);
+                    subscribe(dest, listener);
+                }
 			}
 		}
-		catch (IOException e) {
-			throw new APIException(e);
+		catch (IOException | ClassNotFoundException e) {
+			throw new APIException("Exception raised while creating subscription for " + context.getClazz(), e);
 		}
-		catch (ClassNotFoundException e) {
-			new APIException(e);
-		}
-	}
+    }
 	
 	/**
 	 * @see Event#subscribe(String, EventListener)
@@ -214,21 +268,44 @@ public class EventEngine {
 		if (StringUtils.isBlank(topicName)) {
 			throw new APIException("Topic name cannot be null or blank");
 		}
+
 		subscribe(getDestination(topicName), listener);
 	}
 	
 	/**
-	 * @see Event#unsubscribe(Class, org.openmrs.event.Event.Action, EventListener)
+	 * @see Event#unsubscribe(Class, Event.Action, EventListener)
 	 */
 	public void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
 		if (action != null) {
 			unsubscribeFromClass(clazz, action.toString(), listener);
+            log.info("Unsubscribed from {} events for {}", action, clazz.getSimpleName());
 		} else {
-			for (Event.Action a : Event.Action.values()) {
-				unsubscribeFromClass(clazz, a.toString(), listener);
-			}
+            unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
 		}
 	}
+
+    /**
+     * @see Event#unsubscribe(Class, Collection, EventListener)
+     */
+    public void unsubscribe(Class<?> clazz, Collection<Event.Action> action, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
+        if (action != null) {
+            List<String> eventActions = action.stream().map(Event.Action::toString).collect(Collectors.toList());
+            unsubscribeFromClass(clazz, eventActions, listener);
+            log.info("Unsubscribed from {} events for {}", StringUtils.join(eventActions, ','), clazz.getSimpleName());
+        } else {
+            unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
+        }
+    }
 	
 	/**
 	 * Removes subscriptions from the topics that match the specified action and class including
@@ -238,21 +315,47 @@ public class EventEngine {
 	 * @param action the action to match
 	 * @param listener the Listener subscribing to the top
 	 */
-	private void unsubscribeFromClass(Class<?> clazz, String action, EventListener listener) {
-		try {
-			List<Class<?>> classes = EventClassScanner.getInstance().getClasses(clazz);
-			for (Class c : classes) {
+	private <T> void unsubscribeFromClass(Class<T> clazz, String action, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
+		try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+			for (Class<? extends T> c : context.getEventClasses()) {
 				Destination dest = getDestination(c, action);
 				unsubscribe(dest, listener);
 			}
 		}
-		catch (IOException e) {
+		catch (IOException | ClassNotFoundException e) {
 			throw new APIException(e);
 		}
-		catch (ClassNotFoundException e) {
-			new APIException(e);
-		}
-	}
+    }
+
+    /**
+     * Removes subscriptions from the topics that match the specified action and class including
+     * subclasses
+     *
+     * @param clazz the class to match
+     * @param actions the actions to match
+     * @param listener the Listener subscribing to the top
+     */
+    private <T> void unsubscribeFromClass(Class<T> clazz, Collection<String> actions, EventListener listener) {
+        if (clazz == null || listener == null) {
+            return;
+        }
+
+        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+            for (Class<? extends T> c : context.getEventClasses()) {
+                for (String action : actions) {
+                    Destination dest = getDestination(c, action);
+                    unsubscribe(dest, listener);
+                }
+            }
+        }
+        catch (IOException | ClassNotFoundException e) {
+            throw new APIException(e);
+        }
+    }
 	
 	/**
 	 * @see Event#unsubscribe(String, EventListener)
@@ -268,27 +371,21 @@ public class EventEngine {
 	 * @see Event#getDestination(Class, String)
 	 */
 	public Destination getDestination(final Class<?> clazz, final String action) {
-		return getDestination(action.toString() + DELIMITER + clazz.getName());
+		return getDestination(action + DELIMITER + clazz.getName());
 	}
 	
 	/**
-	 * @see Event#getDestination(String)
+	 * @see Event#getDestinationFor(String) 
 	 */
 	public Destination getDestination(final String topicName) {
-		return new Topic() {
-			
-			@Override
-			public String getTopicName() throws JMSException {
-				return topicName;
-			}
-		};
+		return (Topic) () -> topicName;
 	}
 	
 	/**
 	 * @see Event#subscribe(Destination, EventListener)
 	 */
 	public void subscribe(Destination destination, final EventListener listenerToRegister) {
-		if(!disable()) {
+		if(enabled()) {
 			initializeIfNeeded();
 
 			TopicConnection conn;
@@ -316,45 +413,16 @@ public class EventEngine {
 				conn.start();
 
 			} catch (JMSException e) {
-				// TODO Auto-generated catch block. Do something smarter here.
-				e.printStackTrace();
+				log.error("Exception occurred while subscribing", e);
 			}
 		}
-		//		List<EventListener> currentListeners = listeners.get(key);
-		//
-		//		if (currentListeners == null) {
-		//			currentListeners = new ArrayList<EventListener>();
-		//			currentListeners.add(listenerToRegister);
-		//			listeners.put(key, currentListeners);
-		//			if (log.isInfoEnabled())
-		//				log.info("subscribed: " + listenerToRegister + " to key: "
-		//						+ key);
-		//
-		//		} else {
-		//			// prevent duplicates because of weird spring loading
-		//			String listernToRegisterName = listenerToRegister.getClass()
-		//					.getName();
-		//			Iterator<EventListener> iterator = currentListeners.iterator();
-		//			while (iterator.hasNext()) {
-		//				EventListener lstnr = iterator.next();
-		//				if (lstnr.getClass().getName().equals(listernToRegisterName))
-		//					iterator.remove();
-		//			}
-		//
-		//			if (log.isInfoEnabled())
-		//				log.info("subscribing: " + listenerToRegister + " to key: "
-		//						+ key);
-		//
-		//			currentListeners.add(listenerToRegister);
-		//		}
-		
 	}
 	
 	/**
 	 * @see Event#unsubscribe(Destination, EventListener)
 	 */
 	public void unsubscribe(Destination dest, EventListener listener) {
-		if(!disable()) {
+		if(enabled()) {
 			initializeIfNeeded();
 
 			if (dest != null) {

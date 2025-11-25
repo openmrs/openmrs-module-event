@@ -13,6 +13,7 @@
  */
 package org.openmrs.module.event;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -20,6 +21,7 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
+import org.openmrs.event.EventClassScannerThreadHolder;
 import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.module.ModuleActivator;
 import org.openmrs.util.HandlerUtil;
@@ -56,19 +58,19 @@ public class EventActivator implements ModuleActivator {
 	
 	/**
 	 * @see ModuleActivator#started()
-	 * @should create subscriptions for all subscribable event listeners
 	 */
 	public void started() {
 		log.info("Event Queue Module started");
 		
 		List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class, null);
-		for (SubscribableEventListener listener : listeners) {
-			for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
-				for (String action : listener.subscribeToActions()) {
-					Event.subscribe(clazz, action, listener);
-				}
-			}
-		}
+        try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
+            for (SubscribableEventListener listener : listeners) {
+                Collection<String> actions = listener.subscribeToActions();
+                for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
+                    Event.subscribe(clazz, actions, listener);
+                }
+            }
+        }
 	}
 	
 	/**
@@ -80,7 +82,6 @@ public class EventActivator implements ModuleActivator {
 	
 	/**
 	 * @see ModuleActivator#stopped()
-	 * @should shutdown the jms connection
 	 */
 	public void stopped() {
 		log.info("Event Module stopped");
@@ -88,13 +89,15 @@ public class EventActivator implements ModuleActivator {
 		try {
 			List<SubscribableEventListener> listeners = HandlerUtil
 			        .getHandlersForType(SubscribableEventListener.class, null);
-			for (SubscribableEventListener listener : listeners) {
-				for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
-					for (String action : listener.subscribeToActions()) {
-						Event.unsubscribe(clazz, Action.valueOf(action), listener);
-					}
-				}
-			}
+            try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
+                for (SubscribableEventListener listener : listeners) {
+                    for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
+                        for (String action : listener.subscribeToActions()) {
+                            Event.unsubscribe(clazz, Action.valueOf(action), listener);
+                        }
+                    }
+                }
+            }
 		}
 		finally {
 			Event.shutdown();
