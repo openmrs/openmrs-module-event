@@ -21,6 +21,7 @@ import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -35,14 +36,14 @@ import javax.jms.TopicSession;
 import javax.jms.TopicSubscriber;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
-import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.commons.lang3.StringUtils;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.api.APIException;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
@@ -53,7 +54,7 @@ public class EventEngine {
 
 	protected final static String DELIMITER = ":";
 
-	protected static Log log = LogFactory.getLog(Event.class);
+	protected static Logger log = LoggerFactory.getLogger(Event.class);
 
 	protected JmsTemplate jmsTemplate = null;
 
@@ -209,10 +210,13 @@ public class EventEngine {
         try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
             if (action != null) {
                 subscribeToClass(context, Collections.singletonList(action), listener);
+                log.info("Subscribed to {} events for {}", action, clazz.getSimpleName());
             } else {
                 subscribeToClass(context, Event.Action.getActionNames(), listener);
+                log.info("Subscribed to all events for {}", clazz.getSimpleName());
             }
         }
+
 	}
 
     /**
@@ -224,8 +228,11 @@ public class EventEngine {
         }
 
         try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
-            if (actions != null && !actions.isEmpty()) {
-                subscribeToClass(context, actions, listener);
+            if (actions != null) {
+                if (!actions.isEmpty()) {
+                    subscribeToClass(context, actions, listener);
+                    log.info("Subscribed to {} events for {}", StringUtils.join(actions, ','), clazz.getSimpleName());
+                }
             } else {
                 subscribeToClass(context, Event.Action.getActionNames(), listener);
             }
@@ -275,8 +282,10 @@ public class EventEngine {
 
 		if (action != null) {
 			unsubscribeFromClass(clazz, action.toString(), listener);
+            log.info("Unsubscribed from {} events for {}", action, clazz.getSimpleName());
 		} else {
             unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
 		}
 	}
 
@@ -289,9 +298,12 @@ public class EventEngine {
         }
 
         if (action != null) {
-            unsubscribeFromClass(clazz, action.stream().map(Event.Action::toString).collect(Collectors.toList()), listener);
+            List<String> eventActions = action.stream().map(Event.Action::toString).collect(Collectors.toList());
+            unsubscribeFromClass(clazz, eventActions, listener);
+            log.info("Unsubscribed from {} events for {}", StringUtils.join(eventActions, ','), clazz.getSimpleName());
         } else {
             unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
         }
     }
 	

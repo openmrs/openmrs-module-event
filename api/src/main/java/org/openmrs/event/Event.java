@@ -39,7 +39,7 @@ public class Event {
         PURGED;
 
         public static Collection<String> getActionNames() {
-            return Arrays.stream(Action.values()).map(Action::toString).collect(Collectors.toList());
+            return Arrays.stream(Action.values()).map(Action::name).collect(Collectors.toList());
         }
 	};
 	
