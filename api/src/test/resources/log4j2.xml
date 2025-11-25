@@ -12,7 +12,7 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-		<Logger name="org.openmrs.event" level="INFO" />
+		<Logger name="org.openmrs.event" level="WARN" />
 		<Logger name="org.springframework" additivity="false" level="WARN" />
 		<Logger name="org.hibernate" additivity="false" level="ERROR" />
 		<Root level="WARN">
