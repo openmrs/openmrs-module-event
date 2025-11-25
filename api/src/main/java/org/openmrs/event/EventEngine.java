@@ -61,6 +61,12 @@ public class EventEngine {
 
 	protected SingleConnectionFactory connectionFactory;
 
+    /**
+     * This inner class holds the context for managing a subscription. Basically it serves to simplify using the
+     * {@link EventClassScanner} to manage subscriptions for a specific class
+     *
+     * @param <T>
+     */
     private static class SubscriptionContext<T> implements AutoCloseable {
         private volatile Collection<Class<? extends T>> eventClasses = null;
         private final EventClassScanner classScanner;
