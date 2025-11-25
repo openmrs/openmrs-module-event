@@ -36,6 +36,7 @@
 
 	<properties>
 		<openmrsVersion>2.7.0</openmrsVersion>
+		<lombokVersion>1.18.42</lombokVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
@@ -80,6 +81,12 @@
 					<artifactId>powermock-api-mockito2</artifactId>
 				</exclusion>
 			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombokVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 

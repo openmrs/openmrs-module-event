@@ -43,6 +43,7 @@ import org.openmrs.api.APIException;
 import org.openmrs.api.AdministrationService;
 import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
+import org.openmrs.util.PrivilegeConstants;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.jms.core.MessageCreator;
@@ -156,12 +157,16 @@ public class EventEngine {
     
     private String getExternalUrl() {
     	try {
+			Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
     		return Context.getRegisteredComponent("adminService", AdministrationService.class)
 					.getGlobalProperty("activeMQ.externalUrl");
     	}
     	catch (NullPointerException ex) {
     		log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting" , ex);
     	}
+		finally {
+			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		}
     	return null;
     }
 
