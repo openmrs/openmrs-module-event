@@ -56,14 +56,14 @@ public class EventTest extends BaseModuleContextSensitiveTest {
 		concept.setDatatype(cs.getConceptDatatypeByName("N/A"));
 		concept.setConceptClass(cs.getConceptClassByName("Misc"));
 		cs.saveConcept(concept);
-
+		
 		concept.setVersion("new random version");
 		cs.saveConcept(concept);
-
+		
 		cs.purgeConcept(concept);
-
+		
 		listener.waitForEvents();
-
+		
 		Assertions.assertEquals(0, listener.getCreatedCount());
 		Assertions.assertEquals(1, listener.getUpdatedCount());
 		Assertions.assertEquals(0, listener.getDeletedCount());
