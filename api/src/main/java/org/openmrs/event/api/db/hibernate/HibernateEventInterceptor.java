@@ -28,9 +28,10 @@ import javax.annotation.Nullable;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import java.io.Serializable;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.Stack;
 
 /**
  * A hibernate {@link Interceptor} implementation, intercepts any database inserts, updates and
@@ -43,10 +44,10 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 
     private static final Logger log = LoggerFactory.getLogger(HibernateEventInterceptor.class);
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 6697237884030315867L;
 
     private ApplicationEventPublisher eventPublisher;
-    private final ThreadLocal<Stack<Set<EntityEvent>>> events = new ThreadLocal<>();
+    private final ThreadLocal<Deque<Set<EntityEvent>>> events = new ThreadLocal<>();
 
     @Override
     public void setApplicationEventPublisher(@Nullable ApplicationEventPublisher eventPublisher) {
@@ -73,7 +74,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
     public void afterTransactionBegin(Transaction tx) {
         log.trace("afterTransactionBegin");
         if (events.get() == null) {
-            events.set(new Stack<>());
+            events.set(new ArrayDeque<>());
         }
         events.get().push(new LinkedHashSet<>());
         tx.registerSynchronization(new Synchronization() {
@@ -94,7 +95,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
                     }
                 }
                 finally {
-                    Stack<Set<EntityEvent>> eventStack = events.get();
+                    Deque<Set<EntityEvent>> eventStack = events.get();
                     eventStack.pop();
                     if (eventStack.isEmpty()) {
                         events.remove();
