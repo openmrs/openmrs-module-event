@@ -131,7 +131,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
             for (int i = 0; i < propertyNames.length; i++) {
                 String propertyName = propertyNames[i];
                 if (propertyName.equals(property)) {
-                    previousValue = BooleanUtils.isTrue((Boolean) previousState[i]);
+                    previousValue = previousState != null && BooleanUtils.isTrue((Boolean) previousState[i]);
                     currentValue = BooleanUtils.isTrue((Boolean) currentState[i]);
                 }
             }
