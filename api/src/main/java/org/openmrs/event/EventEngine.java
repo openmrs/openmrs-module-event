@@ -55,7 +55,7 @@ public class EventEngine {
 
 	protected final static String DELIMITER = ":";
 
-	protected static Logger log = LoggerFactory.getLogger(Event.class);
+	protected static Logger log = LoggerFactory.getLogger(EventEngine.class);
 
 	protected JmsTemplate jmsTemplate = null;
 
@@ -215,10 +215,10 @@ public class EventEngine {
         try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
             if (action != null) {
                 subscribeToClass(context, Collections.singletonList(action), listener);
-                log.info("Subscribed to {} events for {}", action, clazz.getSimpleName());
+                log.info("{} subscribed to {} events for {}", listener.getClass(), action, clazz.getSimpleName());
             } else {
                 subscribeToClass(context, Event.Action.getActionNames(), listener);
-                log.info("Subscribed to all events for {}", clazz.getSimpleName());
+                log.info("{} subscribed to all events for {}", listener.getClass(), clazz.getSimpleName());
             }
         }
 
@@ -236,7 +236,7 @@ public class EventEngine {
             if (actions != null) {
                 if (!actions.isEmpty()) {
                     subscribeToClass(context, actions, listener);
-                    log.info("Subscribed to {} events for {}", StringUtils.join(actions, ','), clazz.getSimpleName());
+                    log.info("{} subscribed to {} events for {}", listener.getClass(), StringUtils.join(actions, ','), clazz.getSimpleName());
                 }
             } else {
                 subscribeToClass(context, Event.Action.getActionNames(), listener);
@@ -287,10 +287,10 @@ public class EventEngine {
 
 		if (action != null) {
 			unsubscribeFromClass(clazz, action.toString(), listener);
-            log.info("Unsubscribed from {} events for {}", action, clazz.getSimpleName());
+            log.info("{} unsubscribed from {} events for {}", action, listener.getClass(), clazz.getSimpleName());
 		} else {
             unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
-            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
+            log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
 		}
 	}
 
@@ -305,10 +305,10 @@ public class EventEngine {
         if (action != null) {
             List<String> eventActions = action.stream().map(Event.Action::toString).collect(Collectors.toList());
             unsubscribeFromClass(clazz, eventActions, listener);
-            log.info("Unsubscribed from {} events for {}", StringUtils.join(eventActions, ','), clazz.getSimpleName());
+            log.info("{} unsubscribed from {} events for {}", listener.getClass(), StringUtils.join(eventActions, ','), clazz.getSimpleName());
         } else {
             unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
-            log.info("Unsubscribed from all events for {}", clazz.getSimpleName());
+            log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
         }
     }
 	
