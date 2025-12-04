@@ -44,6 +44,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.util.OpenmrsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.openmrs.util.PrivilegeConstants;
 import org.springframework.jms.connection.SingleConnectionFactory;
 import org.springframework.jms.core.JmsTemplate;
 
@@ -107,7 +108,7 @@ public class EventEngine {
     }
 
 	/**
-	 * @see Event#fireAction(String, Object) 
+	 * @see Event#fireAction(String, Object)
 	 */
 	public void fireAction(String action, final Object object) {
 		Destination key = getDestination(object.getClass(), action);
@@ -190,12 +191,16 @@ public class EventEngine {
     
     private String getExternalUrl() {
     	try {
+			Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
     		return Context.getRegisteredComponent("adminService", AdministrationService.class)
 					.getGlobalProperty("activeMQ.externalUrl");
     	}
     	catch (NullPointerException ex) {
     		log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting" , ex);
     	}
+		finally {
+			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		}
     	return null;
     }
 
@@ -375,7 +380,7 @@ public class EventEngine {
 	}
 	
 	/**
-	 * @see Event#getDestinationFor(String) 
+	 * @see Event#getDestinationFor(String)
 	 */
 	public Destination getDestination(final String topicName) {
 		return (Topic) () -> topicName;
