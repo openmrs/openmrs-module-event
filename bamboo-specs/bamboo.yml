@@ -170,7 +170,7 @@ Release to Maven:
 
         set -x
 
-        export IMAGE=${bamboo.build.docker.image.id}
+        export IMAGE="maven:3.9.9-amazoncorretto-8"
 
         docker pull ${IMAGE}
 
