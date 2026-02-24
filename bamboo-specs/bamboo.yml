@@ -10,11 +10,11 @@ stages:
     manual: false
     final: false
     jobs:
-    - Build and Test JDK 21
-    - Build and Test JDK 11
     - Build and Test JDK 24
-    - Build and Test JDK 8
+    - Build and Test JDK 21
     - Build and Test JDK 17
+    - Build and Test JDK 11
+    - Build and Test JDK 8
 - Deploy:
     manual: false
     final: false
@@ -25,6 +25,56 @@ stages:
     final: false
     jobs:
     - Release to Maven
+Build and Test JDK 24:
+  key: BTJ24
+  tasks:
+  - checkout:
+      force-clean-build: 'false'
+      description: Checkout default repository
+  - script:
+    interpreter: SHELL
+    scripts:
+    - |-
+      #!/bin/bash -eu
+
+      set -x
+
+      export IMAGE=${bamboo.build.docker.image.id}-24
+
+      docker pull ${IMAGE}
+
+      docker run \
+        -v m2-repo:/root/.m2/repository \
+        -v ${PWD}:/module \
+        --rm \
+        -w="/module" \
+        ${IMAGE} \
+        bash -c 'mvn clean package'
+    description: Build and test
+final-tasks:
+- script:
+    interpreter: SHELL
+    scripts:
+    - |-
+      #!/bin/bash -eu
+
+      set -x
+
+      export IMAGE=${bamboo.build.docker.image.id}-24
+
+      myUID=$(id -u)
+      myGID=$(id -g)
+
+      docker run \
+        -v ${PWD}:/module \
+        --rm \
+        -w="/module" \
+        -e myUID=$myUID \
+        -e myGIT=$myGID \
+        ${IMAGE} \
+        bash -c 'chown -R $myUID:$myGID .'
+    description: Fix file ownership
+  artifact-subscriptions: []
 Build and Test JDK 21:
   key: BTJ21
   tasks:
@@ -39,19 +89,19 @@ Build and Test JDK 21:
 
         set -x
 
-        export IMAGE="maven:3.9.9-amazoncorretto-21"
+        export IMAGE=${bamboo.build.docker.image.id}-21
 
         docker pull ${IMAGE}
 
-        docker run -v m2-repo:/root/.m2/repository -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn clean package && chmod -R 777 .'
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn clean package'
       description: Build and test
-  artifact-subscriptions: []
-Build and Test JDK 11:
-  key: BTJ11
-  tasks:
-  - checkout:
-      force-clean-build: 'false'
-      description: Checkout default repository
+  final-tasks:
   - script:
       interpreter: SHELL
       scripts:
@@ -60,54 +110,20 @@ Build and Test JDK 11:
 
         set -x
 
-        export IMAGE="maven:3.9.9-amazoncorretto-11"
+        export IMAGE=${bamboo.build.docker.image.id}-21
 
-        docker pull ${IMAGE}
+        myUID=$(id -u)
+        myGID=$(id -g)
 
-        docker run -v m2-repo:/root/.m2/repository -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn clean package && chmod -R 777 .'
-      description: Build and test
-  artifact-subscriptions: []
-Build and Test JDK 24:
-  key: BTJ24
-  tasks:
-  - checkout:
-      force-clean-build: 'false'
-      description: Checkout default repository
-  - script:
-      interpreter: SHELL
-      scripts:
-      - |-
-        #!/bin/bash -eu
-
-        set -x
-
-        export IMAGE="maven:3.9.9-amazoncorretto-24"
-
-        docker pull ${IMAGE}
-
-        docker run -v m2-repo:/root/.m2/repository -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn clean package && chmod -R 777 .'
-      description: Build and test
-  artifact-subscriptions: []
-Build and Test JDK 8:
-  key: BTJ8
-  tasks:
-  - checkout:
-      force-clean-build: 'false'
-      description: Checkout default repository
-  - script:
-      interpreter: SHELL
-      scripts:
-      - |-
-        #!/bin/bash -eu
-
-        set -x
-
-        export IMAGE="maven:3.9.9-amazoncorretto-8"
-
-        docker pull ${IMAGE}
-
-        docker run -v m2-repo:/root/.m2/repository -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn clean package && chmod -R 777 .'
-      description: Build and test
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
   artifact-subscriptions: []
 Build and Test JDK 17:
   key: BTJ17
@@ -123,12 +139,141 @@ Build and Test JDK 17:
 
         set -x
 
-        export IMAGE="maven:3.9.9-amazoncorretto-17"
+        export IMAGE=${bamboo.build.docker.image.id}-17
 
         docker pull ${IMAGE}
 
-        docker run -v m2-repo:/root/.m2/repository -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn clean package && chmod -R 777 .'
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn clean package'
       description: Build and test
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-17
+
+        myUID=$(id -u)
+        myGID=$(id -g)
+
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
+  artifact-subscriptions: []
+Build and Test JDK 11:
+  key: BTJ11
+  tasks:
+  - checkout:
+      force-clean-build: 'false'
+      description: Checkout default repository
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-11
+
+        docker pull ${IMAGE}
+
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn clean package'
+      description: Build and test
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-11
+
+        myUID=$(id -u)
+        myGID=$(id -g)
+
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
+  artifact-subscriptions: []
+Build and Test JDK 8:
+  key: BTJ8
+  tasks:
+  - checkout:
+      force-clean-build: 'false'
+      description: Checkout default repository
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-8
+
+        docker pull ${IMAGE}
+
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn clean package'
+      description: Build and test
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-8
+
+        myUID=$(id -u)
+        myGID=$(id -g)
+
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
   artifact-subscriptions: []
 Deploy to Maven:
   key: DTM
@@ -144,12 +289,42 @@ Deploy to Maven:
 
         set -x
 
-        export IMAGE=${bamboo.build.docker.image.id}
+        export IMAGE=${bamboo.build.docker.image.id}-21
 
         docker pull ${IMAGE}
 
-        docker run -v m2-repo:/root/.m2/repository -v ~/.m2/settings.xml:/.m2/settings.xml:ro -v ${PWD}:/module --rm -w="/module" ${IMAGE} bash -c 'mvn deploy -DskipTests --settings /.m2/settings.xml'
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ~/.m2/settings.xml:/.m2/settings.xml:ro \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn deploy -DskipTests --settings /.m2/settings.xml'
       description: Deploy
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-21
+
+        myUID=$(id -u)
+        myGID=$(id -g)
+
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
   artifact-subscriptions: []
 Release to Maven:
   key: RTM
@@ -170,7 +345,7 @@ Release to Maven:
 
         set -x
 
-        export IMAGE="maven:3.9.9-amazoncorretto-8"
+        export IMAGE="maven:3.9.9-amazoncorretto-21"
 
         docker pull ${IMAGE}
 
@@ -195,6 +370,7 @@ Release to Maven:
               -r ${bamboo.maven.release.version} \
               -d ${bamboo.maven.development.version} \
               -e ${bamboo.planRepository.repositoryUrl}
+              -s
           '
       environment: GIT_USER_NAME=${bamboo.git.user.name} GIT_USER_EMAIL=${bamboo.git.user.email}
       description: Release prepare perform
@@ -211,9 +387,32 @@ Release to Maven:
         variable: maven.development.version
         variableScope: JOB
       description: Retrieve next snaphot version
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
+
+        set -x
+
+        export IMAGE=${bamboo.build.docker.image.id}-21
+
+        myUID=$(id -u)
+        myGID=$(id -g)
+
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
   artifact-subscriptions: []
 variables:
-  build.docker.image.id: maven:3.9.9-amazoncorretto-21
+  build.docker.image.id: maven:3.9.9-amazoncorretto
   maven.development.version: 4.1.0-SNAPSHOT
   maven.release.version: 4.0.0
   refapp.distro.property: eventVersion
