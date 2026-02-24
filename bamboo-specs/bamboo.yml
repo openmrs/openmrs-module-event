@@ -51,29 +51,29 @@ Build and Test JDK 24:
         ${IMAGE} \
         bash -c 'mvn clean package'
     description: Build and test
-final-tasks:
-- script:
-    interpreter: SHELL
-    scripts:
-    - |-
-      #!/bin/bash -eu
+  final-tasks:
+  - script:
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
 
-      set -x
+        set -x
 
-      export IMAGE=${bamboo.build.docker.image.id}-24
+        export IMAGE=${bamboo.build.docker.image.id}-24
 
-      myUID=$(id -u)
-      myGID=$(id -g)
+        myUID=$(id -u)
+        myGID=$(id -g)
 
-      docker run \
-        -v ${PWD}:/module \
-        --rm \
-        -w="/module" \
-        -e myUID=$myUID \
-        -e myGIT=$myGID \
-        ${IMAGE} \
-        bash -c 'chown -R $myUID:$myGID .'
-    description: Fix file ownership
+        docker run \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          -e myUID=$myUID \
+          -e myGIT=$myGID \
+          ${IMAGE} \
+          bash -c 'chown -R $myUID:$myGID .'
+      description: Fix file ownership
   artifact-subscriptions: []
 Build and Test JDK 21:
   key: BTJ21
