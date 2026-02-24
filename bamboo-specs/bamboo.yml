@@ -32,25 +32,25 @@ Build and Test JDK 24:
       force-clean-build: 'false'
       description: Checkout default repository
   - script:
-    interpreter: SHELL
-    scripts:
-    - |-
-      #!/bin/bash -eu
+      interpreter: SHELL
+      scripts:
+      - |-
+        #!/bin/bash -eu
 
-      set -x
+        set -x
 
-      export IMAGE=${bamboo.build.docker.image.id}-24
+        export IMAGE=${bamboo.build.docker.image.id}-24
 
-      docker pull ${IMAGE}
+        docker pull ${IMAGE}
 
-      docker run \
-        -v m2-repo:/root/.m2/repository \
-        -v ${PWD}:/module \
-        --rm \
-        -w="/module" \
-        ${IMAGE} \
-        bash -c 'mvn clean package'
-    description: Build and test
+        docker run \
+          -v m2-repo:/root/.m2/repository \
+          -v ${PWD}:/module \
+          --rm \
+          -w="/module" \
+          ${IMAGE} \
+          bash -c 'mvn clean package'
+      description: Build and test
   final-tasks:
   - script:
       interpreter: SHELL
