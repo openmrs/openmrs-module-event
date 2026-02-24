@@ -70,7 +70,7 @@ Build and Test JDK 24:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -120,7 +120,7 @@ Build and Test JDK 21:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -170,7 +170,7 @@ Build and Test JDK 17:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -220,7 +220,7 @@ Build and Test JDK 11:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -270,7 +270,7 @@ Build and Test JDK 8:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -321,7 +321,7 @@ Deploy to Maven:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
@@ -406,7 +406,7 @@ Release to Maven:
           --rm \
           -w="/module" \
           -e myUID=$myUID \
-          -e myGIT=$myGID \
+          -e myGID=$myGID \
           ${IMAGE} \
           bash -c 'chown -R $myUID:$myGID .'
       description: Fix file ownership
