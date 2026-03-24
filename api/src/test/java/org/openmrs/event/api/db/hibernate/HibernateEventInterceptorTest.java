@@ -13,7 +13,6 @@
  */
 package org.openmrs.event.api.db.hibernate;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.Location;
@@ -27,10 +26,7 @@ import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.BaseEventTest;
 import org.openmrs.event.Event;
-import org.openmrs.event.EventActivator;
 import org.openmrs.event.EventListener;
-import org.openmrs.module.Module;
-import org.openmrs.module.ModuleFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -38,7 +34,6 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import java.lang.reflect.Method;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -63,20 +58,6 @@ public class HibernateEventInterceptorTest extends BaseEventTest {
 	PatientIdentifierType oldId;
 	Location unknownLocation;
 	Program program;
-
-	@BeforeAll
-	public static void setupDaemonToken() throws Exception {
-		Module module = new Module("event");
-		module.setModuleId("event");
-		module.setModuleActivator(new EventActivator());
-
-		Method passDaemonTokenMethod = ModuleFactory.class.getDeclaredMethod("passDaemonToken", Module.class);
-		passDaemonTokenMethod.setAccessible(true);
-		passDaemonTokenMethod.invoke(null, module);
-
-		Method getDaemonTokenMethod = ModuleFactory.class.getDeclaredMethod("getDaemonToken", Module.class);
-		getDaemonTokenMethod.setAccessible(true);
-	}
 
 	@BeforeEach
 	public void setupTest() {
