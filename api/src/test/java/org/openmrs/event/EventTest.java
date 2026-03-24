@@ -23,7 +23,6 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.Event.Action;
 import org.openmrs.test.Verifies;
-import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +36,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @SuppressWarnings("deprecation")
-public class EventTest extends BaseModuleContextSensitiveTest {
+public class EventTest extends BaseEventTest {
 	
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)

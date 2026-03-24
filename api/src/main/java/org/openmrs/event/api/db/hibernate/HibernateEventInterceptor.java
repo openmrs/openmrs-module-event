@@ -1,5 +1,6 @@
 package org.openmrs.event.api.db.hibernate;
 
+import lombok.Setter;
 import org.apache.commons.lang.BooleanUtils;
 import org.hibernate.CallbackException;
 import org.hibernate.EmptyInterceptor;
@@ -24,7 +25,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nullable;
 import javax.transaction.Status;
 import javax.transaction.Synchronization;
 import java.io.Serializable;
@@ -46,21 +46,18 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 
     private static final long serialVersionUID = 6697237884030315867L;
 
-    private ApplicationEventPublisher eventPublisher;
-    private final ThreadLocal<Deque<Set<EntityEvent>>> events = new ThreadLocal<>();
+    @Setter
+    private ApplicationEventPublisher applicationEventPublisher;
 
-    @Override
-    public void setApplicationEventPublisher(@Nullable ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
-    }
+    private final ThreadLocal<Deque<Set<EntityEvent>>> events = new ThreadLocal<>();
 
     /**
      * @param event the event to publish
      */
     private void publishEvent(TransactionEvent event) {
-        if (eventPublisher != null) {
+        if (applicationEventPublisher != null) {
             log.trace("Publishing event {}", event);
-            eventPublisher.publishEvent(event);
+            applicationEventPublisher.publishEvent(event);
         }
         else {
             throw new IllegalStateException("Unable to publish application event, event publisher is null");

@@ -20,12 +20,12 @@ import org.openmrs.api.ConceptService;
 import org.openmrs.api.EncounterService;
 import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
+import org.openmrs.event.BaseEventTest;
 import org.openmrs.event.Event;
 import org.openmrs.event.EventEngine;
 import org.openmrs.event.EventEngineUtil;
 import org.openmrs.event.MockEventListener;
 import org.openmrs.event.MockNestedService;
-import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("deprecation")
-public class EventBehaviorTest extends BaseModuleContextSensitiveTest {
+public class EventBehaviorTest extends BaseEventTest {
 
 	@Autowired
 	ConceptService conceptService;

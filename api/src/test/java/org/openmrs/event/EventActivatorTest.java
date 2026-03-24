@@ -11,7 +11,7 @@
  *
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
-package org.openmrs.module.event;
+package org.openmrs.event;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,8 +22,6 @@ import org.openmrs.OpenmrsObject;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.ConceptService;
 import org.openmrs.event.Event.Action;
-import org.openmrs.event.MockEventListener;
-import org.openmrs.event.SubscribableEventListener;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.beans.factory.annotation.Autowired;

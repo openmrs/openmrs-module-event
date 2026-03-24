@@ -11,24 +11,21 @@ package org.openmrs.event;
 import org.openmrs.event.api.db.hibernate.HibernateEventInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 /**
  * Application listener that publishes all changes after they are committed to an asynchronous JMS topic
  */
 @Component
-public class JmsEventPublisher implements ApplicationListener<TransactionCommittedEvent> {
+public class JmsEventPublisher extends TransactionEventListener {
 
 	private static final Logger log = LoggerFactory.getLogger(HibernateEventInterceptor.class);
 
 	@Override
-	public void onApplicationEvent(TransactionCommittedEvent transactionCommittedEvent) {
-		if (transactionCommittedEvent.getEvents() != null) {
-			for (EntityEvent entityEvent : transactionCommittedEvent.getEvents()) {
-				log.trace("Firing event {}: ", entityEvent);
-				Event.fireAction(entityEvent.getAction().name(), entityEvent.getEntity());
-			}
+	public void transactionCommitted(TransactionCommittedEvent transactionEvent) {
+		for (EntityEvent entityEvent : transactionEvent.getEvents()) {
+			log.trace("Firing event {}: ", entityEvent);
+			Event.fireAction(entityEvent.getAction().name(), entityEvent.getEntity());
 		}
 	}
 }
