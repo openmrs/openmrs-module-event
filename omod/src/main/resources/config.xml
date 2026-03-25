@@ -17,7 +17,7 @@
 
 	
 	<!-- Module Activator -->
-	<activator>org.openmrs.module.event.EventActivator</activator>
+	<activator>org.openmrs.event.EventActivator</activator>
 	
 	<!-- Maps hibernate file's, if present -->
 	<mappingFiles>

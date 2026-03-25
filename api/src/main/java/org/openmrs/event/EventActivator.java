@@ -11,57 +11,30 @@
  *
  * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
  */
-package org.openmrs.module.event;
-
-import java.util.Collection;
-import java.util.List;
+package org.openmrs.event;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.OpenmrsObject;
-import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
-import org.openmrs.event.EventClassScannerThreadHolder;
-import org.openmrs.event.SubscribableEventListener;
-import org.openmrs.module.ModuleActivator;
+import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.DaemonToken;
+import org.openmrs.module.DaemonTokenAware;
 import org.openmrs.util.HandlerUtil;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  * This class contains the logic that is run every time this module is either started or stopped.
  */
-public class EventActivator implements ModuleActivator {
-	
+public class EventActivator extends BaseModuleActivator implements DaemonTokenAware {
+
 	protected Log log = LogFactory.getLog(getClass());
 	
-	/**
-	 * @see ModuleActivator#willRefreshContext()
-	 */
-	public void willRefreshContext() {
-		log.info("Refreshing Event Module");
-	}
-	
-	/**
-	 * @see ModuleActivator#contextRefreshed()
-	 */
-	public void contextRefreshed() {
-		log.info("Event Module refreshed");
-		
-		// TODO: look for @Handler for events and automatically register those advice/listeners? -- EVNT-11
-	}
-	
-	/**
-	 * @see ModuleActivator#willStart()
-	 */
-	public void willStart() {
-		log.info("Starting Event Queue Module");
-	}
-	
-	/**
-	 * @see ModuleActivator#started()
-	 */
+	@Override
 	public void started() {
-		log.info("Event Queue Module started");
-		
+		log.info("Event Module started");
 		List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class, null);
         try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
             for (SubscribableEventListener listener : listeners) {
@@ -72,23 +45,12 @@ public class EventActivator implements ModuleActivator {
             }
         }
 	}
-	
-	/**
-	 * @see ModuleActivator#willStop()
-	 */
-	public void willStop() {
-		log.info("Stopping Event Module");
-	}
-	
-	/**
-	 * @see ModuleActivator#stopped()
-	 */
+
+	@Override
 	public void stopped() {
 		log.info("Event Module stopped");
-		
 		try {
-			List<SubscribableEventListener> listeners = HandlerUtil
-			        .getHandlersForType(SubscribableEventListener.class, null);
+			List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class, null);
             try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
                 for (SubscribableEventListener listener : listeners) {
                     for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
@@ -102,5 +64,10 @@ public class EventActivator implements ModuleActivator {
 		finally {
 			Event.shutdown();
 		}
+	}
+
+	@Override
+	public void setDaemonToken(DaemonToken daemonToken) {
+		TransactionEventListener.setDaemonToken(daemonToken);
 	}
 }
