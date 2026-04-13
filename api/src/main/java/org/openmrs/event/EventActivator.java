@@ -62,7 +62,7 @@ public class EventActivator extends BaseModuleActivator implements DaemonTokenAw
             }
 		}
 		finally {
-			Event.shutdown();
+			// no-op: no broker to shut down
 		}
 	}
 

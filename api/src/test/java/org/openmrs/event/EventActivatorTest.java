@@ -13,16 +13,15 @@
  */
 package org.openmrs.event;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.ConceptService;
 import org.openmrs.event.Event.Action;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.openmrs.test.Verifies;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -34,7 +33,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @SuppressWarnings("deprecation")
-public class EventActivatorTest extends BaseModuleContextSensitiveTest {
+public class EventActivatorTest extends BaseEventTest {
 
 	@Autowired
 	TestSubscribableEventListener listener;
@@ -42,7 +41,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@Autowired
 	ConceptService conceptService;
 
-	@Before
+	@BeforeEach
 	public void before() {
 		// reset
 		listener.setCreatedCount(0);
@@ -67,9 +66,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 
 		// sanity check
 		listener.waitForEvents();
-		Assert.assertEquals(0, listener.getCreatedCount());
-		Assert.assertEquals(0, listener.getUpdatedCount());
-		Assert.assertEquals(0, listener.getDeletedCount());
+		Assertions.assertEquals(0, listener.getCreatedCount());
+		Assertions.assertEquals(0, listener.getUpdatedCount());
+		Assertions.assertEquals(0, listener.getDeletedCount());
 
 		listener.setExpectedEventsCount(2);
 
@@ -85,9 +84,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 
 		listener.waitForEvents();
 
-		Assert.assertEquals(1, listener.getCreatedCount());
-		Assert.assertEquals(2, listener.getUpdatedCount());
-		Assert.assertEquals(0, listener.getDeletedCount());
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		Assertions.assertEquals(2, listener.getUpdatedCount());
+		Assertions.assertEquals(0, listener.getDeletedCount());
 	}
 
 	/**
@@ -111,9 +110,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 
 		listener.waitForEvents();
 
-		Assert.assertEquals(1, listener.getCreatedCount());
-		Assert.assertEquals(1, listener.getUpdatedCount());
-		Assert.assertEquals(0, listener.getDeletedCount());
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		Assertions.assertEquals(1, listener.getUpdatedCount());
+		Assertions.assertEquals(0, listener.getDeletedCount());
 
 		new EventActivator().stopped();
 
@@ -125,9 +124,9 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		conceptService.purgeConcept(concept4);
 
 		// there should have been no changes
-		Assert.assertEquals(1, listener.getCreatedCount());
-		Assert.assertEquals(1, listener.getUpdatedCount());
-		Assert.assertEquals(0, listener.getDeletedCount());
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		Assertions.assertEquals(1, listener.getUpdatedCount());
+		Assertions.assertEquals(0, listener.getDeletedCount());
 	}
 
 	@Handler

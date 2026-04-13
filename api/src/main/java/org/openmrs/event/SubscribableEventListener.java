@@ -22,15 +22,15 @@ import org.openmrs.OpenmrsObject;
  * listener class
  */
 public interface SubscribableEventListener extends EventListener {
-	
+
 	/**
 	 * @return a list of classes that this can handle
 	 */
 	public List<Class<? extends OpenmrsObject>> subscribeToObjects();
-	
+
 	/**
 	 * @return a list of Actions this listener can deal with
 	 */
 	public List<String> subscribeToActions();
-	
+
 }

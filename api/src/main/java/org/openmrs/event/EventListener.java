@@ -13,15 +13,10 @@
  */
 package org.openmrs.event;
 
-import javax.jms.MessageListener;
-
 /**
- * This interface is implemented by modules that want to register/subscribe to
- * events on the {@link Event}. The {@link #handle(ChangeEvent)} method is
- * called when the specific event occurs in OpenMRS.
- * 
- * TODO: add reference to what is in the message object passed to onMessage method
+ * This interface is implemented by modules that want to subscribe to events on the {@link Event}.
  */
-public interface EventListener extends MessageListener {
+public interface EventListener {
 
+	void onEvent(OpenMrsEntityEvent event);
 }

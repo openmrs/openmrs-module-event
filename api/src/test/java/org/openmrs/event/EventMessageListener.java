@@ -13,42 +13,29 @@
  */
 package org.openmrs.event;
 
-import javax.jms.MapMessage;
-import javax.jms.Message;
-
-import org.junit.Assert;
-
 public class EventMessageListener extends MockEventListener {
-	
+
 	private String city;
-	
+
 	private String state;
-	
+
 	EventMessageListener(int expectedEventsCount) {
 		super(expectedEventsCount);
 	}
-	
-	public void onMessage(Message message) {
-		MapMessage mapMessage = (MapMessage) message;
-		try {
-			city = mapMessage.getString("city");
-			state = mapMessage.getString("state");
-		}
-		catch (Exception e) {
-			Assert.fail(e.getMessage());
+
+	@Override
+	public void onEvent(OpenMrsEntityEvent event) {
+		EventMessage eventMessage = event.getEventMessage();
+		if (eventMessage != null) {
+			city = (String) eventMessage.get("city");
+			state = (String) eventMessage.get("state");
 		}
 	}
-	
-	/**
-	 * @return the city
-	 */
+
 	public String getCity() {
 		return city;
 	}
-	
-	/**
-	 * @return the state
-	 */
+
 	public String getState() {
 		return state;
 	}

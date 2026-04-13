@@ -8,18 +8,18 @@
  */
 package org.openmrs.event;
 
-import org.openmrs.event.api.db.hibernate.HibernateEventInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Application listener that publishes all changes after they are committed to an asynchronous JMS topic
+ * Bridges Spring transaction events to the in-memory EventEngine.
+ * Listens for TransactionCommittedEvent and fires per-entity events via Event.fireAction().
  */
 @Component
-public class JmsEventPublisher extends TransactionEventListener {
+public class EventPublisher extends TransactionEventListener {
 
-	private static final Logger log = LoggerFactory.getLogger(HibernateEventInterceptor.class);
+	private static final Logger log = LoggerFactory.getLogger(EventPublisher.class);
 
 	@Override
 	public void transactionCommitted(TransactionCommittedEvent transactionEvent) {

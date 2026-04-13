@@ -26,7 +26,6 @@ import org.openmrs.test.Verifies;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.jms.Destination;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -141,39 +140,38 @@ public class EventTest extends BaseEventTest {
 	}
 	
 	/**
-	 * @see {@link Event#unsubscribe(Destination,EventListener)}
+	 * @see Event#unsubscribe(Class, Event.Action, EventListener)
 	 */
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	@Verifies(value = "should unsubscribe from the specified destination", method = "unsubscribe(Destination,EventListener)")
-	public void unsubscribe_shouldUnsubscribeFromTheSpecifiedDestination() throws Exception {
+	@Verifies(value = "should unsubscribe from the specified topic", method = "unsubscribe(Class,Action,EventListener)")
+	public void unsubscribe_shouldUnsubscribeFromTheSpecifiedTopic() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(1);
-		String action = Action.CREATED.toString();
-		Event.subscribe(Concept.class, action, listener);
-		
+		Event.subscribe(Concept.class, Action.CREATED.toString(), listener);
+
 		Concept concept1 = new Concept();
 		ConceptName name1 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
 		concept1.addName(name1);
 		concept1.setDatatype(cs.getConceptDatatypeByName("N/A"));
 		concept1.setConceptClass(cs.getConceptClassByName("Misc"));
 		cs.saveConcept(concept1);
-		
+
 		listener.waitForEvents();
-		
+
 		Assertions.assertEquals(1, listener.getCreatedCount());
-		
-		Event.unsubscribe(Event.getDestination(Concept.class, action), listener);
-		
+
+		Event.unsubscribe(Concept.class, Action.CREATED, listener);
+
 		Concept concept2 = new Concept();
 		ConceptName name2 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
 		concept2.addName(name2);
 		concept2.setDatatype(cs.getConceptDatatypeByName("N/A"));
 		concept2.setConceptClass(cs.getConceptClassByName("Misc"));
 		cs.saveConcept(concept2);
-		
+
 		Thread.sleep(100);
-		
+
 		Assertions.assertEquals(1, listener.getCreatedCount());
 	}
 	
@@ -295,11 +293,11 @@ public class EventTest extends BaseEventTest {
     }
 	
 	/**
-	 * @see {@link Event#unsubscribe(Destination,EventListener)}
+	 * @see Event#unsubscribe(Class, Event.Action, EventListener)
 	 */
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	@Verifies(value = "maintain subscriptions to the same topic for other listeners", method = "unsubscribe(Destination,EventListener)")
+	@Verifies(value = "maintain subscriptions to the same topic for other listeners", method = "unsubscribe(Class,Action,EventListener)")
 	public void unsubscribe_shouldMaintainSubscriptionsToTheSameTopicForOtherListeners() throws Exception {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener1 = new MockEventListener(1);
