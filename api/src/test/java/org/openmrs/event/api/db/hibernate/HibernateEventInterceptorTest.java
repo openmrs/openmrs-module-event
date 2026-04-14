@@ -26,7 +26,6 @@ import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.BaseEventTest;
 import org.openmrs.event.Event;
-import org.openmrs.event.EventListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;

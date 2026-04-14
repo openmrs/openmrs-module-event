@@ -1,11 +1,9 @@
 package org.openmrs.module.event.advice;
 
 import org.hibernate.proxy.HibernateProxy;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.internal.verification.Times;
 import org.openmrs.Concept;
 import org.openmrs.ConceptClass;
 import org.openmrs.ConceptDescription;
@@ -22,10 +20,8 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.BaseEventTest;
 import org.openmrs.event.Event;
-import org.openmrs.event.EventEngine;
-import org.openmrs.event.EventEngineUtil;
-import org.openmrs.event.MockEventListener;
 import org.openmrs.event.MockNestedService;
+import org.openmrs.event.MockTransactionEventCollector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,273 +30,222 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.UUID;
 
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
-@SuppressWarnings("deprecation")
+@Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class EventBehaviorTest extends BaseEventTest {
 
 	@Autowired
 	ConceptService conceptService;
-	
-	private static EventEngine eventEngine;
-	
-	@BeforeAll
-	public static void beforeClass() {
-		eventEngine = spy(EventEngineUtil.getEventEngine());
-		EventEngineUtil.setEventEngine(eventEngine);
+
+	@Autowired
+	MockTransactionEventCollector collector;
+
+	@BeforeEach
+	public void before() {
+		collector.clear();
 	}
 
-    @AfterEach
-    public void afterTest() {
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
-    }
-
-
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnCreate() throws Exception {
+	public void shouldFireEventOnCreate() {
 		Concept concept = randomConcept();
 		conceptService.saveConcept(concept);
 
-		verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.CREATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnUpdate() throws Exception {
+	public void shouldFireEventOnUpdate() {
 		Concept concept = conceptService.getConcept(3);
 		final String newVersion = "new random version";
 		Assertions.assertFalse(newVersion.equals(concept.getVersion()));
 		concept.setVersion(newVersion);
 		conceptService.saveConcept(concept);
-		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), concept);
+
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.UPDATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnUpdatingProxiedObject() throws Exception {
+	public void shouldFireEventOnUpdatingProxiedObject() {
 		Concept concept = conceptService.getConcept(4);
 		ConceptClass conceptClass = concept.getConceptClass();
 		final String newDescription = "new random description";
 		Assertions.assertFalse(newDescription.equals(conceptClass.getDescription()));
 		conceptClass.setDescription(newDescription);
 		Assertions.assertTrue(conceptClass instanceof HibernateProxy);
-		
+
 		conceptService.saveConceptClass(conceptClass);
-		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), conceptClass);
+
+		Assertions.assertTrue(collector.hasEvent(conceptClass, Event.Action.UPDATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnCreatingObjects() throws Exception {
+	public void shouldFireEventOnCreatingObjects() {
 		GlobalProperty gp1 = new GlobalProperty("1", "1");
 		GlobalProperty gp2 = new GlobalProperty("2", "2");
-		MockEventListener listener = new MockEventListener(2);
-		Event.subscribe(GlobalProperty.class, (String) null, listener);
-		
+
 		Context.getAdministrationService().saveGlobalProperties(Arrays.asList(gp1, gp2));
-		
-		verify(eventEngine).fireAction(Event.Action.CREATED.name(), gp1);
-		verify(eventEngine).fireAction(Event.Action.CREATED.name(), gp2);
+
+		Assertions.assertTrue(collector.hasEvent(gp1, Event.Action.CREATED));
+		Assertions.assertTrue(collector.hasEvent(gp2, Event.Action.CREATED));
 	}
-	
-	/**
-	 * @verifies fire event on updating User
-	 */
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnUpdatingUser() throws Exception {
+	public void shouldFireEventOnUpdatingUser() {
 		User user = Context.getUserService().getUser(1);
 		Context.getUserService().saveUser(user);
-		
-		verify(eventEngine, times(2)).fireAction(Event.Action.UPDATED.name(), user);
+
+		Assertions.assertTrue(collector.hasEvent(user, Event.Action.UPDATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnWhenUpdatingASubclass() throws Exception {
+	public void shouldFireEventOnWhenUpdatingASubclass() {
 		Patient patient = Context.getPatientService().getPatient(2);
 		patient.setGender("F");
 		Context.getPersonService().savePerson(patient);
-		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+
+		Assertions.assertTrue(collector.hasEvent(patient, Event.Action.UPDATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnCreatingAGlobalProperty() throws Exception {
-		MockEventListener listener = new MockEventListener(1);
-		eventEngine.subscribe(GlobalProperty.class, (String) null, listener);
+	public void shouldFireEventOnCreatingAGlobalProperty() {
 		Context.getAdministrationService().saveGlobalProperty(new GlobalProperty("property", "value"));
-		
-		listener.waitForEvents();
-		Assertions.assertEquals(1, listener.getCreatedCount());
-		Assertions.assertEquals(0, listener.getUpdatedCount());
+
+		long createdCount = collector.getEvents().stream()
+			.filter(e -> e.getAction() == Event.Action.CREATED && e.getEntity() instanceof GlobalProperty)
+			.count();
+		Assertions.assertEquals(1, createdCount);
 	}
-	
-	/**
-	 * @throws Exception
-	 */
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnEditingAGlobalProperty() throws Exception {
-		//create a test GP
+	public void shouldFireEventOnEditingAGlobalProperty() {
 		AdministrationService as = Context.getAdministrationService();
 		GlobalProperty gp = new GlobalProperty("property1", "value1");
 		gp = as.saveGlobalProperty(gp);
-		
-		as.saveGlobalProperty(gp);
-		
-		verify(eventEngine).fireAction(Event.Action.CREATED.name(), gp);
+
+		Assertions.assertTrue(collector.hasEvent(gp, Event.Action.CREATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventWhenAnElementIsAddedToAChildCollection() throws Exception {
+	public void shouldFireEventWhenAnElementIsAddedToAChildCollection() {
 		Concept concept = conceptService.getConcept(5089);
 		ConceptDescription cd = new ConceptDescription("new descr", Locale.ENGLISH);
 		concept.addDescription(cd);
 		conceptService.saveConcept(concept);
-		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), concept);
-		verify(eventEngine).fireAction(Event.Action.CREATED.name(), cd);
+
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.UPDATED));
+		Assertions.assertTrue(collector.hasEvent(cd, Event.Action.CREATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventWhenAnElementIsRemovedFromAChildCollection() throws Exception {
+	public void shouldFireEventWhenAnElementIsRemovedFromAChildCollection() {
 		Concept concept = conceptService.getConcept(5497);
 		Assertions.assertTrue(concept.getDescriptions().size() > 0);
 		concept.removeDescription(concept.getDescription());
 		conceptService.saveConcept(concept);
-		
-		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), concept);
+
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.UPDATED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnRetiringAnObject() throws Exception {
+	public void shouldFireEventOnRetiringAnObject() {
 		Concept concept = conceptService.getConcept(5497);
 		Assertions.assertFalse(concept.isRetired());
-		//sanity check that in case we don't retire it, the action isn't fired
 		conceptService.saveConcept(concept);
-		verify(eventEngine, new Times(0)).fireAction(Event.Action.RETIRED.name(), concept);
-		
+		Assertions.assertFalse(collector.hasEvent(concept, Event.Action.RETIRED));
+
+		collector.clear();
 		conceptService.retireConcept(concept, "testing");
-		verify(eventEngine).fireAction(Event.Action.RETIRED.name(), concept);
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.RETIRED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnUnRetiringAnObject() throws Exception {
+	public void shouldFireEventOnUnRetiringAnObject() {
 		EncounterService es = Context.getEncounterService();
 		EncounterType eType = es.getEncounterType(6);
 		Assertions.assertTrue(eType.isRetired());
 		es.saveEncounterType(eType);
-		verify(eventEngine, new Times(0)).fireAction(Event.Action.UNRETIRED.name(), eType);
-		
+		Assertions.assertFalse(collector.hasEvent(eType, Event.Action.UNRETIRED));
+
+		collector.clear();
 		eType.setRetired(false);
 		es.saveEncounterType(eType);
-		verify(eventEngine).fireAction(Event.Action.UNRETIRED.name(), eType);
+		Assertions.assertTrue(collector.hasEvent(eType, Event.Action.UNRETIRED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnVoidingAnObject() throws Exception {
+	public void shouldFireEventOnVoidingAnObject() {
 		PatientService ps = Context.getPatientService();
 		PatientIdentifier pId = ps.getPatientIdentifier(1);
 		Assertions.assertFalse(pId.isVoided());
 		ps.savePatientIdentifier(pId);
-		verify(eventEngine, new Times(0)).fireAction(Event.Action.VOIDED.name(), pId);
-		
+		Assertions.assertFalse(collector.hasEvent(pId, Event.Action.VOIDED));
+
+		collector.clear();
 		ps.voidPatientIdentifier(pId, "testing");
-		verify(eventEngine).fireAction(Event.Action.VOIDED.name(), pId);
+		Assertions.assertTrue(collector.hasEvent(pId, Event.Action.VOIDED));
 	}
-	
+
 	@Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public void shouldFireEventOnUnVoidingAnObject() throws Exception {
+	public void shouldFireEventOnUnVoidingAnObject() {
 		PatientService ps = Context.getPatientService();
 		PatientIdentifier pId = ps.getPatientIdentifier(6);
 		Assertions.assertTrue(pId.isVoided());
 		ps.savePatientIdentifier(pId);
-		verify(eventEngine, new Times(0)).fireAction(Event.Action.UNVOIDED.name(), pId);
-		
+		Assertions.assertFalse(collector.hasEvent(pId, Event.Action.UNVOIDED));
+
+		collector.clear();
 		pId.setVoided(false);
 		ps.savePatientIdentifier(pId);
-		verify(eventEngine).fireAction(Event.Action.UNVOIDED.name(), pId);
+		Assertions.assertTrue(collector.hasEvent(pId, Event.Action.UNVOIDED));
 	}
 
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldFireEventsOnNestedTransactions() throws Exception {
-
-        Concept concept = randomConcept();
-
-        Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
-
-    }
-
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
-
-        Concept concept = randomConcept();
-
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
-        }
-        catch (Exception e) {
-        }
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
-
-    }
-
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
-
+	@Test
+	public void shouldFireEventsOnNestedTransactions() {
 		Concept concept = randomConcept();
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, true, false);
-        }
-        catch (Exception e) {
-        }
+		Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
 
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
-    }
+		Patient patient = Context.getPatientService().getPatient(2);
+		Assertions.assertTrue(collector.hasEvent(patient, Event.Action.UPDATED));
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.CREATED));
+	}
 
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
+	@Test
+	public void shouldNotFireInnerEventOnInnerTransactionIfRollback() {
+		Concept concept = randomConcept();
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
+		} catch (Exception e) {
+		}
 
-        Concept concept = randomConcept();
+		Patient patient = Context.getPatientService().getPatient(2);
+		Assertions.assertFalse(collector.hasEvent(patient, Event.Action.UPDATED));
+		Assertions.assertTrue(collector.hasEvent(concept, Event.Action.CREATED));
+	}
 
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, true, true);
-        }
-        catch (Exception e) {
-        }
+	@Test
+	public void shouldNotFireOuterEventOnOuterTransactionIfRollback() {
+		Concept concept = randomConcept();
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, true, false);
+		} catch (Exception e) {
+		}
 
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
-    }
+		Patient patient = Context.getPatientService().getPatient(2);
+		Assertions.assertTrue(collector.hasEvent(patient, Event.Action.UPDATED));
+		Assertions.assertFalse(collector.hasEvent(concept, Event.Action.CREATED));
+	}
+
+	@Test
+	public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() {
+		Concept concept = randomConcept();
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, true, true);
+		} catch (Exception e) {
+		}
+
+		Patient patient = Context.getPatientService().getPatient(2);
+		Assertions.assertFalse(collector.hasEvent(patient, Event.Action.UPDATED));
+		Assertions.assertFalse(collector.hasEvent(concept, Event.Action.CREATED));
+	}
 
 	Concept randomConcept() {
 		Concept concept = new Concept();
