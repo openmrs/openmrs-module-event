@@ -13,8 +13,10 @@
  */
 package org.openmrs.event.api.db.hibernate;
 
+import org.hibernate.Transaction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.PatientIdentifierType;
@@ -25,7 +27,6 @@ import org.openmrs.api.PatientService;
 import org.openmrs.api.ProgramWorkflowService;
 import org.openmrs.api.context.Context;
 import org.openmrs.event.BaseEventTest;
-import org.openmrs.event.Event;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionStatus;
@@ -36,6 +37,7 @@ import org.springframework.transaction.support.DefaultTransactionDefinition;
 import java.util.Date;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class HibernateEventInterceptorTest extends BaseEventTest {
@@ -66,11 +68,8 @@ public class HibernateEventInterceptorTest extends BaseEventTest {
 		program = programWorkflowService.getProgram(1);
 	}
 	
-	/**
-	 * @see Event#subscribe(Class, String, EventListener)
-	 */
 	@Test
-	public void shouldSuccessfullySaveAdditionalPatientDataAfterTransactionCompletion() throws Exception {
+	public void shouldSuccessfullySaveAdditionalPatientDataAfterTransactionCompletion() {
 		Patient patient = patientService.getPatient(2);
 		int startingIdentifierNum = patient.getIdentifiers().size();
 
@@ -96,6 +95,13 @@ public class HibernateEventInterceptorTest extends BaseEventTest {
 		Context.clearSession();
 		patient = patientService.getPatient(2);
 		assertEquals(startingIdentifierNum + 1, patient.getIdentifiers().size());
-		// TestUtil.printOutTableContents(getConnection(), "patient_identifier");
+	}
+
+	@Test
+	public void shouldThrowWhenApplicationEventPublisherIsNull() {
+		HibernateEventInterceptor interceptor = new HibernateEventInterceptor();
+		Transaction tx = Mockito.mock(Transaction.class);
+		// applicationEventPublisher is not set, so publishEvent should throw
+		assertThrows(IllegalStateException.class, () -> interceptor.afterTransactionBegin(tx));
 	}
 }

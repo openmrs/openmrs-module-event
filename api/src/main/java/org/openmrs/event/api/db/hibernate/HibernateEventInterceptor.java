@@ -78,24 +78,28 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
             @Override
             public void beforeCompletion() {
                 log.trace("beforeTransactionCompletion");
-                publishEvent(new TransactionBeforeCompletionEvent(this, events.get().peek()));
+                Deque<Set<EntityEvent>> eventStack = events.get();
+                publishEvent(new TransactionBeforeCompletionEvent(this, eventStack != null ? eventStack.peek() : null));
             }
             @Override
             public void afterCompletion(int status) {
                 log.trace("afterTransactionCompletion");
+                Deque<Set<EntityEvent>> eventStack = events.get();
                 try {
+                    Set<EntityEvent> currentEvents = eventStack != null ? eventStack.peek() : null;
                     if (status == Status.STATUS_COMMITTED) {
-                        publishEvent(new TransactionCommittedEvent(this, events.get().peek()));
+                        publishEvent(new TransactionCommittedEvent(this, currentEvents));
                     }
                     else {
-                        publishEvent(new TransactionNotCommittedEvent(this, events.get().peek(), status));
+                        publishEvent(new TransactionNotCommittedEvent(this, currentEvents, status));
                     }
                 }
                 finally {
-                    Deque<Set<EntityEvent>> eventStack = events.get();
-                    eventStack.pop();
-                    if (eventStack.isEmpty()) {
-                        events.remove();
+                    if (eventStack != null) {
+                        eventStack.pop();
+                        if (eventStack.isEmpty()) {
+                            events.remove();
+                        }
                     }
                 }
             }
@@ -145,51 +149,27 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
         return false;
     }
 
-    /**
-     * This is invoked when the collection associated with an object is removed
-     * Consider this to be an update of the object containing the collection
-     */
     @Override
     public void onCollectionRemove(Object collection, Serializable key) throws CallbackException {
-        log.trace("onCollectionRemove");
-        if (collection instanceof PersistentCollection) {
-            PersistentCollection persistentCollection = (PersistentCollection) collection;
-            handleEntity(persistentCollection.getOwner(), Action.UPDATED);
-        }
-        else {
-            log.trace("collection is not a PersistentCollection");
-        }
+        handleCollectionChange(collection);
     }
 
-    /**
-     * This is invoked when the collection associated with an object is recreated
-     * Consider this to be an update of the object containing the collection
-     */
     @Override
     public void onCollectionRecreate(Object collection, Serializable key) throws CallbackException {
-        log.trace("onCollectionRecreate");
-        if (collection instanceof PersistentCollection) {
-            PersistentCollection persistentCollection = (PersistentCollection) collection;
-            handleEntity(persistentCollection.getOwner(), Action.UPDATED);
-        }
-        else {
-            log.trace("collection is not a PersistentCollection");
-        }
+        handleCollectionChange(collection);
+    }
+
+    @Override
+    public void onCollectionUpdate(Object collection, Serializable key) throws CallbackException {
+        handleCollectionChange(collection);
     }
 
     /**
-     * This is invoked when the collection associated with an object is updated
-     * Consider this to be an update of the object containing the collection
+     * Collection changes (remove, recreate, update) are treated as an update of the owning entity
      */
-    @Override
-    public void onCollectionUpdate(Object collection, Serializable key) throws CallbackException {
-        log.trace("onCollectionUpdate");
+    private void handleCollectionChange(Object collection) {
         if (collection instanceof PersistentCollection) {
-            PersistentCollection persistentCollection = (PersistentCollection) collection;
-            handleEntity(persistentCollection.getOwner(), Action.UPDATED);
-        }
-        else {
-            log.trace("collection is not a PersistentCollection");
+            handleEntity(((PersistentCollection) collection).getOwner(), Action.UPDATED);
         }
     }
 
@@ -207,9 +187,14 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
      */
     protected void handleEntity(Object entity, Event.Action action) {
         if (entity instanceof OpenmrsObject) {
+            Deque<Set<EntityEvent>> eventStack = events.get();
+            if (eventStack == null || eventStack.isEmpty()) {
+                log.trace("Ignoring {} for {} — no active transaction context", action, entity.getClass().getSimpleName());
+                return;
+            }
             OpenmrsObject openmrsObject = (OpenmrsObject) entity;
             EntityEvent event = new EntityEvent(openmrsObject, action);
-            events.get().peek().add(event);
+            eventStack.peek().add(event);
             log.trace("{}", event);
         }
         else {

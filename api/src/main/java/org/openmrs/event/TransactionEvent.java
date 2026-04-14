@@ -27,11 +27,12 @@ public abstract class TransactionEvent extends ApplicationEvent {
 
 	public TransactionEvent(Object source, Set<EntityEvent> incomingEvents) {
 		super(source);
-		if (events == null) {
-			events = new LinkedHashSet<>();
-		}
+		this.events = new LinkedHashSet<>();
 		if (incomingEvents != null) {
-			// Do not add duplicate events; CREATE AND PURGE take precedence over UPDATE events
+			// Deduplicate events within the same transaction:
+			// - UPDATE is suppressed if a CREATE or PURGE already exists for the same entity
+			// - PURGE removes any prior UPDATE for the same entity
+			// - PURGE also removes any prior CREATE (entity never "existed" from an observer's perspective)
 			for (EntityEvent incomingEvent : incomingEvents) {
 				boolean hasEvent = events.contains(incomingEvent);
 				if (!hasEvent && incomingEvent.getAction() == Event.Action.UPDATED) {
@@ -40,6 +41,11 @@ public abstract class TransactionEvent extends ApplicationEvent {
 				}
 				if (!hasEvent && incomingEvent.getAction() == Event.Action.PURGED) {
 					events.remove(new EntityEvent(incomingEvent.getEntity(), Event.Action.UPDATED));
+					// If entity was created in this same tx, remove the CREATE and skip the PURGE —
+					// the entity never existed from an observer's perspective
+					if (events.remove(new EntityEvent(incomingEvent.getEntity(), Event.Action.CREATED))) {
+						continue;
+					}
 				}
 				if (!hasEvent) {
 					events.add(incomingEvent);

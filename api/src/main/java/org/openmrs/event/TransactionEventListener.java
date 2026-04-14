@@ -21,27 +21,29 @@ import org.springframework.context.ApplicationListener;
 public abstract class TransactionEventListener implements ApplicationListener<TransactionEvent> {
 
 	@Setter
-	private static DaemonToken daemonToken = null;
+	private static volatile DaemonToken daemonToken = null;
 
 	@Override
 	public final void onApplicationEvent(TransactionEvent transactionEvent) {
-		if (transactionEvent.getEvents() != null && !transactionEvent.getEvents().isEmpty()) {
-			if (transactionEvent instanceof TransactionAfterBeginEvent) {
-				afterTransactionBegin((TransactionAfterBeginEvent) transactionEvent);
-			}
-			else if (transactionEvent instanceof TransactionBeforeCompletionEvent) {
-				beforeTransactionCompletion((TransactionBeforeCompletionEvent) transactionEvent);
-			}
-			else if (transactionEvent instanceof TransactionCommittedEvent) {
-				Daemon.runInDaemonThreadAndWait(() ->
-					transactionCommitted((TransactionCommittedEvent) transactionEvent), daemonToken);
-			}
-			else if (transactionEvent instanceof TransactionNotCommittedEvent) {
-				Daemon.runInDaemonThreadAndWait(() ->
-					transactionNotCommitted((TransactionNotCommittedEvent) transactionEvent), daemonToken);
-			}
-			transactionEvent(transactionEvent);
+		if (transactionEvent instanceof TransactionAfterBeginEvent) {
+			afterTransactionBegin((TransactionAfterBeginEvent) transactionEvent);
 		}
+		else if (transactionEvent instanceof TransactionBeforeCompletionEvent) {
+			beforeTransactionCompletion((TransactionBeforeCompletionEvent) transactionEvent);
+		}
+		else if (hasEvents(transactionEvent) && transactionEvent instanceof TransactionCommittedEvent) {
+			Daemon.runInDaemonThreadAndWait(() ->
+				transactionCommitted((TransactionCommittedEvent) transactionEvent), daemonToken);
+		}
+		else if (hasEvents(transactionEvent) && transactionEvent instanceof TransactionNotCommittedEvent) {
+			Daemon.runInDaemonThreadAndWait(() ->
+				transactionNotCommitted((TransactionNotCommittedEvent) transactionEvent), daemonToken);
+		}
+		transactionEvent(transactionEvent);
+	}
+
+	private boolean hasEvents(TransactionEvent transactionEvent) {
+		return transactionEvent.getEvents() != null && !transactionEvent.getEvents().isEmpty();
 	}
 
 	public void afterTransactionBegin(TransactionAfterBeginEvent transactionEvent) {
