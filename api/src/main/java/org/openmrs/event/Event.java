@@ -175,3 +175,4 @@ public class Event {
 		bridge().fireTopic(topicName, eventMessage);
 	}
 }
+

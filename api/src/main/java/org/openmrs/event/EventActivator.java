@@ -99,3 +99,4 @@ public class EventActivator extends BaseModuleActivator implements DaemonTokenAw
 		}
 	}
 }
+
