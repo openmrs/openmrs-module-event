@@ -115,10 +115,8 @@ public class TransactionEventDedupTest {
 		Assertions.assertEquals(1, tx.getEvents().size());
 	}
 
-	// These tests are to verify the current behavior
-
 	@Test
-	public void shouldNotCancelRetireAndUnretireInSameTransaction() {
+	public void shouldCancelRetireAndUnretireInSameTransaction() {
 		Concept c = getConcept("uuid-1");
 		Set<EntityEvent> incoming = new LinkedHashSet<>();
 		incoming.add(new EntityEvent(c, Event.Action.RETIRED));
@@ -126,13 +124,23 @@ public class TransactionEventDedupTest {
 
 		TransactionEvent tx = new TransactionCommittedEvent(this, incoming);
 
-		Assertions.assertEquals(2, tx.getEvents().size());
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.RETIRED)));
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.UNRETIRED)));
+		Assertions.assertTrue(tx.getEvents().isEmpty());
 	}
 
 	@Test
-	public void shouldNotCancelVoidAndUnvoidInSameTransaction() {
+	public void shouldCancelUnretireAndRetireInSameTransaction() {
+		Concept c = getConcept("uuid-1");
+		Set<EntityEvent> incoming = new LinkedHashSet<>();
+		incoming.add(new EntityEvent(c, Event.Action.UNRETIRED));
+		incoming.add(new EntityEvent(c, Event.Action.RETIRED));
+
+		TransactionEvent tx = new TransactionCommittedEvent(this, incoming);
+
+		Assertions.assertTrue(tx.getEvents().isEmpty());
+	}
+
+	@Test
+	public void shouldCancelVoidAndUnvoidInSameTransaction() {
 		Concept c = getConcept("uuid-1");
 		Set<EntityEvent> incoming = new LinkedHashSet<>();
 		incoming.add(new EntityEvent(c, Event.Action.VOIDED));
@@ -140,9 +148,19 @@ public class TransactionEventDedupTest {
 
 		TransactionEvent tx = new TransactionCommittedEvent(this, incoming);
 
-		Assertions.assertEquals(2, tx.getEvents().size());
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.VOIDED)));
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.UNVOIDED)));
+		Assertions.assertTrue(tx.getEvents().isEmpty());
+	}
+
+	@Test
+	public void shouldCancelUnvoidAndVoidInSameTransaction() {
+		Concept c = getConcept("uuid-1");
+		Set<EntityEvent> incoming = new LinkedHashSet<>();
+		incoming.add(new EntityEvent(c, Event.Action.UNVOIDED));
+		incoming.add(new EntityEvent(c, Event.Action.VOIDED));
+
+		TransactionEvent tx = new TransactionCommittedEvent(this, incoming);
+
+		Assertions.assertTrue(tx.getEvents().isEmpty());
 	}
 
 	@Test
@@ -173,7 +191,9 @@ public class TransactionEventDedupTest {
 	}
 
 	@Test
-	public void shouldCollapseDuplicateUpdatedWhenEntityRetiredThenUnretiredInSameTransaction() {
+	public void shouldLeaveOnlyUpdatedWhenEntityRetiredThenUnretiredInSameTransaction() {
+		// Simulates two onFlushDirty calls: retire emits UPDATED+RETIRED, unretire emits UPDATED+UNRETIRED.
+		// Duplicate UPDATED collapses via Set equality; RETIRED and UNRETIRED cancel each other out.
 		Concept c = getConcept("uuid-1");
 		Set<EntityEvent> incoming = new LinkedHashSet<>();
 		incoming.add(new EntityEvent(c, Event.Action.UPDATED));
@@ -183,10 +203,8 @@ public class TransactionEventDedupTest {
 
 		TransactionEvent tx = new TransactionCommittedEvent(this, incoming);
 
-		Assertions.assertEquals(3, tx.getEvents().size());
+		Assertions.assertEquals(1, tx.getEvents().size());
 		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.UPDATED)));
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.RETIRED)));
-		Assertions.assertTrue(tx.getEvents().contains(new EntityEvent(c, Event.Action.UNRETIRED)));
 	}
 
 	@Test

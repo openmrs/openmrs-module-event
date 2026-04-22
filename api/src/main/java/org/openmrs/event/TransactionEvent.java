@@ -33,6 +33,7 @@ public abstract class TransactionEvent extends ApplicationEvent {
 			// - UPDATE is suppressed if a CREATE or PURGE already exists for the same entity
 			// - PURGE removes any prior UPDATE for the same entity
 			// - PURGE also removes any prior CREATE (entity never "existed" from an observer's perspective)
+			// - RETIRE and UNRETIRE cancel each other out within the same transaction; same for VOID/UNVOID
 			for (EntityEvent incomingEvent : incomingEvents) {
 				boolean hasEvent = events.contains(incomingEvent);
 				if (!hasEvent && incomingEvent.getAction() == Event.Action.UPDATED) {
@@ -47,10 +48,26 @@ public abstract class TransactionEvent extends ApplicationEvent {
 						continue;
 					}
 				}
+				Event.Action opposite = oppositeLifecycleAction(incomingEvent.getAction());
+				if (!hasEvent && opposite != null) {
+					if (events.remove(new EntityEvent(incomingEvent.getEntity(), opposite))) {
+						continue;
+					}
+				}
 				if (!hasEvent) {
 					events.add(incomingEvent);
 				}
 			}
+		}
+	}
+
+	private static Event.Action oppositeLifecycleAction(Event.Action action) {
+		switch (action) {
+			case RETIRED:   return Event.Action.UNRETIRED;
+			case UNRETIRED: return Event.Action.RETIRED;
+			case VOIDED:    return Event.Action.UNVOIDED;
+			case UNVOIDED:  return Event.Action.VOIDED;
+			default:        return null;
 		}
 	}
 }
