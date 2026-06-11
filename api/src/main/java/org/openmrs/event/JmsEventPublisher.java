@@ -14,13 +14,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
- * Application listener that publishes all changes after they are committed to an asynchronous JMS topic
+ * Application listener that publishes all changes after they are committed to an asynchronous JMS
+ * topic
  */
 @Component
 public class JmsEventPublisher extends TransactionEventListener {
-
+	
 	private static final Logger log = LoggerFactory.getLogger(HibernateEventInterceptor.class);
-
+	
 	@Override
 	public void transactionCommitted(TransactionCommittedEvent transactionEvent) {
 		for (EntityEvent entityEvent : transactionEvent.getEvents()) {

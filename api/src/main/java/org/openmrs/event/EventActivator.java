@@ -29,43 +29,44 @@ import java.util.List;
  * This class contains the logic that is run every time this module is either started or stopped.
  */
 public class EventActivator extends BaseModuleActivator implements DaemonTokenAware {
-
+	
 	protected Log log = LogFactory.getLog(getClass());
 	
 	@Override
 	public void started() {
 		log.info("Event Module started");
 		List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class, null);
-        try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
-            for (SubscribableEventListener listener : listeners) {
-                Collection<String> actions = listener.subscribeToActions();
-                for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
-                    Event.subscribe(clazz, actions, listener);
-                }
-            }
-        }
+		try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
+			for (SubscribableEventListener listener : listeners) {
+				Collection<String> actions = listener.subscribeToActions();
+				for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
+					Event.subscribe(clazz, actions, listener);
+				}
+			}
+		}
 	}
-
+	
 	@Override
 	public void stopped() {
 		log.info("Event Module stopped");
 		try {
-			List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class, null);
-            try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
-                for (SubscribableEventListener listener : listeners) {
-                    for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
-                        for (String action : listener.subscribeToActions()) {
-                            Event.unsubscribe(clazz, Action.valueOf(action), listener);
-                        }
-                    }
-                }
-            }
+			List<SubscribableEventListener> listeners = HandlerUtil.getHandlersForType(SubscribableEventListener.class,
+			    null);
+			try (EventClassScannerThreadHolder holder = new EventClassScannerThreadHolder()) {
+				for (SubscribableEventListener listener : listeners) {
+					for (Class<? extends OpenmrsObject> clazz : listener.subscribeToObjects()) {
+						for (String action : listener.subscribeToActions()) {
+							Event.unsubscribe(clazz, Action.valueOf(action), listener);
+						}
+					}
+				}
+			}
 		}
 		finally {
 			Event.shutdown();
 		}
 	}
-
+	
 	@Override
 	public void setDaemonToken(DaemonToken daemonToken) {
 		TransactionEventListener.setDaemonToken(daemonToken);

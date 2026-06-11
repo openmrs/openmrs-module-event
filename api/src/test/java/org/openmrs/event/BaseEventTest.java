@@ -21,17 +21,17 @@ import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import java.lang.reflect.Method;
 
 public class BaseEventTest extends BaseModuleContextSensitiveTest {
-
+	
 	@BeforeAll
 	public static void setupDaemonToken() throws Exception {
 		Module module = new Module("event");
 		module.setModuleId("event");
 		module.setModuleActivator(new EventActivator());
-
+		
 		Method passDaemonTokenMethod = ModuleFactory.class.getDeclaredMethod("passDaemonToken", Module.class);
 		passDaemonTokenMethod.setAccessible(true);
 		passDaemonTokenMethod.invoke(null, module);
-
+		
 		Method getDaemonTokenMethod = ModuleFactory.class.getDeclaredMethod("getDaemonToken", Module.class);
 		getDaemonTokenMethod.setAccessible(true);
 	}

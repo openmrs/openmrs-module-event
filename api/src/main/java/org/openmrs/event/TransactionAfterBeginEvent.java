@@ -14,7 +14,8 @@ import java.util.Set;
  * Represents an event notification that a new transaction has started
  */
 public class TransactionAfterBeginEvent extends TransactionEvent {
-    public TransactionAfterBeginEvent(Object source, Set<EntityEvent> events) {
-        super(source, events);
-    }
+	
+	public TransactionAfterBeginEvent(Object source, Set<EntityEvent> events) {
+		super(source, events);
+	}
 }

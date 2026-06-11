@@ -12,10 +12,12 @@ import java.util.Set;
 
 /**
  * Represents an event notification that a transaction has completed successfully and data is saved
- * Listeners for this event will not operate in the same transaction as the underlying data that was changed
+ * Listeners for this event will not operate in the same transaction as the underlying data that was
+ * changed
  */
 public class TransactionCommittedEvent extends TransactionEvent {
-    public TransactionCommittedEvent(Object source, Set<EntityEvent> events) {
-        super(source, events);
-    }
+	
+	public TransactionCommittedEvent(Object source, Set<EntityEvent> events) {
+		super(source, events);
+	}
 }

@@ -30,17 +30,18 @@ public class Event {
 	 * These are the core-defined actions that go in topics
 	 */
 	public enum Action {
+		
 		CREATED,
-        UPDATED,
-        RETIRED,
-        UNRETIRED,
-        VOIDED,
-        UNVOIDED,
-        PURGED;
-
-        public static Collection<String> getActionNames() {
-            return Arrays.stream(Action.values()).map(Action::name).collect(Collectors.toList());
-        }
+		UPDATED,
+		RETIRED,
+		UNRETIRED,
+		VOIDED,
+		UNVOIDED,
+		PURGED;
+		
+		public static Collection<String> getActionNames() {
+			return Arrays.stream(Action.values()).map(Action::name).collect(Collectors.toList());
+		}
 	};
 	
 	/**
@@ -67,8 +68,8 @@ public class Event {
 	}
 	
 	/**
-	 * Creates a subscription for the specified class and action, if action is null, the
-	 * subscription is created for all the actions
+	 * Creates a subscription for the specified class and action, if action is null, the subscription is
+	 * created for all the actions
 	 * 
 	 * @param clazz
 	 * @param action
@@ -79,20 +80,20 @@ public class Event {
 	public static void subscribe(Class<?> clazz, String action, EventListener listener) {
 		eventEngine.subscribe(clazz, action, listener);
 	}
-
-    /**
-     * Creates a subscription for the specified class and set of actions, if actions are null, the
-     * subscription is created for all the actions
-     *
-     * @param clazz
-     * @param actions
-     * @should subscribe only to the specified action
-     * @should subscribe to every action if action is null
-     * @should not subscribe duplicate event listeners
-     */
-    public static void subscribe(Class<?> clazz, Collection<String> actions, EventListener listener) {
-        eventEngine.subscribe(clazz, actions, listener);
-    }
+	
+	/**
+	 * Creates a subscription for the specified class and set of actions, if actions are null, the
+	 * subscription is created for all the actions
+	 *
+	 * @param clazz
+	 * @param actions
+	 * @should subscribe only to the specified action
+	 * @should subscribe to every action if action is null
+	 * @should not subscribe duplicate event listeners
+	 */
+	public static void subscribe(Class<?> clazz, Collection<String> actions, EventListener listener) {
+		eventEngine.subscribe(clazz, actions, listener);
+	}
 	
 	/**
 	 * Creates a subscription to the topic with the specified name
@@ -115,18 +116,18 @@ public class Event {
 	public static void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
 		eventEngine.unsubscribe(clazz, action, listener);
 	}
-
-    /**
-     * Removes the subscription associated to the specified class and set of actions, if action is null all
-     * subscriptions associated to the class are dropped
-     *
-     * @param clazz if null, all objects are unsubscribed
-     * @param actions if null, all actions are unsubscribed
-     * @param listener the given listener to unsubscribe
-     */
-    public static void unsubscribe(Class<?> clazz, Collection<Event.Action> actions, EventListener listener) {
-        eventEngine.unsubscribe(clazz, actions, listener);
-    }
+	
+	/**
+	 * Removes the subscription associated to the specified class and set of actions, if action is null
+	 * all subscriptions associated to the class are dropped
+	 *
+	 * @param clazz if null, all objects are unsubscribed
+	 * @param actions if null, all actions are unsubscribed
+	 * @param listener the given listener to unsubscribe
+	 */
+	public static void unsubscribe(Class<?> clazz, Collection<Event.Action> actions, EventListener listener) {
+		eventEngine.unsubscribe(clazz, actions, listener);
+	}
 	
 	/**
 	 * Removes the subscription from the topic with the specified name
@@ -164,8 +165,8 @@ public class Event {
 	/**
 	 * Called by spring application context. It needs to be non static, but it acts like static.
 	 * 
-	 * @param listenerToRegister and {@link SubscribableEventListener} that specifies which objects
-	 *            and actions it wants to listen to
+	 * @param listenerToRegister and {@link SubscribableEventListener} that specifies which objects and
+	 *            actions it wants to listen to
 	 */
 	public void setSubscription(SubscribableEventListener listenerToRegister) {
 		eventEngine.setSubscription(listenerToRegister);

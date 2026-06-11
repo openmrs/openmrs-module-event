@@ -24,10 +24,10 @@ import java.util.UUID;
 
 @Component
 public class MockTransactionEventListener extends TransactionEventListener {
-
+	
 	@Autowired
 	PatientService patientService;
-
+	
 	@Override
 	public void transactionCommitted(TransactionCommittedEvent event) {
 		for (EntityEvent entityEvent : event.getEvents()) {
@@ -36,7 +36,8 @@ public class MockTransactionEventListener extends TransactionEventListener {
 					PatientProgram patientProgram = (PatientProgram) entityEvent.getEntity();
 					Patient patient = patientProgram.getPatient();
 					PatientIdentifierType pit = patientService.getPatientIdentifierType(2);
-					PatientIdentifier identifier = new PatientIdentifier(UUID.randomUUID().toString(), pit, patientProgram.getLocation());
+					PatientIdentifier identifier = new PatientIdentifier(UUID.randomUUID().toString(), pit,
+					        patientProgram.getLocation());
 					patient.addIdentifier(identifier);
 					patientService.savePatientIdentifier(identifier);
 				}

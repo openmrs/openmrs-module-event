@@ -40,25 +40,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 public class HibernateEventInterceptorTest extends BaseEventTest {
-
+	
 	@Autowired
 	PatientService patientService;
-
+	
 	@Autowired
 	LocationService locationService;
-
+	
 	@Autowired
 	ProgramWorkflowService programWorkflowService;
-
+	
 	@Autowired
 	PlatformTransactionManager transactionManager;
-
+	
 	DefaultTransactionDefinition definition;
-
+	
 	PatientIdentifierType oldId;
+	
 	Location unknownLocation;
+	
 	Program program;
-
+	
 	@BeforeEach
 	public void setupTest() {
 		definition = new DefaultTransactionDefinition();
@@ -74,12 +76,12 @@ public class HibernateEventInterceptorTest extends BaseEventTest {
 	public void shouldSuccessfullySaveAdditionalPatientDataAfterTransactionCompletion() throws Exception {
 		Patient patient = patientService.getPatient(2);
 		int startingIdentifierNum = patient.getIdentifiers().size();
-
+		
 		// This block constructs a patient program, saves and commits it, which is expected to result in a
 		// transaction committed event that is received by the MockTransactionEventListener, which creates a new
 		// patient identifier for the program patient.  This then clears the hibernate session and confirms that the
 		// newly created data actually exists in the DB
-
+		
 		PatientProgram pp = new PatientProgram();
 		pp.setPatient(patient);
 		pp.setProgram(program);

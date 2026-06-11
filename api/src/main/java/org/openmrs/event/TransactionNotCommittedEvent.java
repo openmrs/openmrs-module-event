@@ -14,16 +14,17 @@ import lombok.Setter;
 import java.util.Set;
 
 /**
- * Represents an event notification that a transaction has was not committed successfully
- * Listeners for this event will not operate in the same transaction as the underlying data that was changed
+ * Represents an event notification that a transaction has was not committed successfully Listeners
+ * for this event will not operate in the same transaction as the underlying data that was changed
  */
 public class TransactionNotCommittedEvent extends TransactionEvent {
-
-    @Getter @Setter
-    private int status;
-
-    public TransactionNotCommittedEvent(Object source, Set<EntityEvent> events, int status) {
-        super(source, events);
-        this.status = status;
-    }
+	
+	@Getter
+	@Setter
+	private int status;
+	
+	public TransactionNotCommittedEvent(Object source, Set<EntityEvent> events, int status) {
+		super(source, events);
+		this.status = status;
+	}
 }

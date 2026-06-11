@@ -48,7 +48,7 @@ public class EventTest extends BaseEventTest {
 		ConceptService cs = Context.getConceptService();
 		MockEventListener listener = new MockEventListener(3); //let's wait for 3 messages
 		Event.subscribe(Concept.class, Action.UPDATED.toString(), listener);
-
+		
 		Concept concept = new Concept();
 		ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
 		concept.addName(name);
@@ -67,36 +67,36 @@ public class EventTest extends BaseEventTest {
 		Assertions.assertEquals(1, listener.getUpdatedCount());
 		Assertions.assertEquals(0, listener.getDeletedCount());
 	}
-
-    /**
-     * @see Event#subscribe(Class, Collection, EventListener)
-     */
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @Verifies(value = "should subscribe only to the specified actions", method = "subscribe(Class<OpenmrsObject>,Collection,EventListener)")
-    public void subscribe_shouldSubscribeOnlyToTheSpecifiedActions() throws Exception {
-        ConceptService cs = Context.getConceptService();
-        MockEventListener listener = new MockEventListener(3); //let's wait for 3 messages
-        Event.subscribe(Concept.class, Arrays.asList(Action.CREATED.toString(), Action.UPDATED.toString()), listener);
-
-        Concept concept = new Concept();
-        ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
-        concept.addName(name);
-        concept.setDatatype(cs.getConceptDatatypeByName("N/A"));
-        concept.setConceptClass(cs.getConceptClassByName("Misc"));
-        cs.saveConcept(concept);
-
-        concept.setVersion("new random version");
-        cs.saveConcept(concept);
-
-        cs.purgeConcept(concept);
-
-        listener.waitForEvents();
-
-        Assertions.assertEquals(1, listener.getCreatedCount());
-        Assertions.assertEquals(1, listener.getUpdatedCount());
-        Assertions.assertEquals(0, listener.getDeletedCount());
-    }
+	
+	/**
+	 * @see Event#subscribe(Class, Collection, EventListener)
+	 */
+	@Test
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	@Verifies(value = "should subscribe only to the specified actions", method = "subscribe(Class<OpenmrsObject>,Collection,EventListener)")
+	public void subscribe_shouldSubscribeOnlyToTheSpecifiedActions() throws Exception {
+		ConceptService cs = Context.getConceptService();
+		MockEventListener listener = new MockEventListener(3); //let's wait for 3 messages
+		Event.subscribe(Concept.class, Arrays.asList(Action.CREATED.toString(), Action.UPDATED.toString()), listener);
+		
+		Concept concept = new Concept();
+		ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+		concept.addName(name);
+		concept.setDatatype(cs.getConceptDatatypeByName("N/A"));
+		concept.setConceptClass(cs.getConceptClassByName("Misc"));
+		cs.saveConcept(concept);
+		
+		concept.setVersion("new random version");
+		cs.saveConcept(concept);
+		
+		cs.purgeConcept(concept);
+		
+		listener.waitForEvents();
+		
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		Assertions.assertEquals(1, listener.getUpdatedCount());
+		Assertions.assertEquals(0, listener.getDeletedCount());
+	}
 	
 	/**
 	 * @see Event#subscribe(Class,String,EventListener)
@@ -120,7 +120,7 @@ public class EventTest extends BaseEventTest {
 		cs.saveConcept(concept);
 		
 		cs.purgeConcept(concept);
-
+		
 		//Should work for subclasses
 		ConceptNumeric cn = new ConceptNumeric();
 		cn.setDatatype(cs.getConceptDatatypeByName("Numeric"));
@@ -128,13 +128,13 @@ public class EventTest extends BaseEventTest {
 		ConceptName cName = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
 		cn.addName(cName);
 		cs.saveConcept(cn);
-
+		
 		cn.setVersion("new random version");
 		cs.saveConcept(cn);
 		cs.purgeConcept(cn);
-
+		
 		listener.waitForEvents();
-
+		
 		Assertions.assertEquals(2, listener.getCreatedCount());
 		Assertions.assertEquals(2, listener.getUpdatedCount());
 		Assertions.assertEquals(2, listener.getDeletedCount());
@@ -256,43 +256,43 @@ public class EventTest extends BaseEventTest {
 		Assertions.assertEquals(1, listener.getCreatedCount());
 		Assertions.assertEquals(1, listener.getDeletedCount());
 	}
-
-    /**
-     * @see Event#unsubscribe(Class,Collection,EventListener)
-     */
-    @Test
-    @Transactional(propagation = Propagation.NOT_SUPPORTED)
-    @Verifies(value = "should unsubscribe only for the specified actions", method = "unsubscribe(Class<OpenmrsObject>,Collection,EventListener)")
-    public void unsubscribe_shouldUnsubscribeOnlyForTheSpecifiedActions() throws Exception {
-        ConceptService cs = Context.getConceptService();
-        MockEventListener listener = new MockEventListener(1);
-        Event.subscribe(Concept.class, (String) null, listener);
-
-        Concept concept1 = new Concept();
-        ConceptName name1 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
-        concept1.addName(name1);
-        concept1.setDatatype(cs.getConceptDatatypeByName("N/A"));
-        concept1.setConceptClass(cs.getConceptClassByName("Misc"));
-        cs.saveConcept(concept1);
-
-        listener.waitForEvents();
-
-        Assertions.assertEquals(1, listener.getCreatedCount());
-
-        Event.unsubscribe(Concept.class, Collections.singletonList(Action.CREATED), listener);
-        Concept concept2 = new Concept();
-        ConceptName name2 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
-        concept2.addName(name2);
-        concept2.setDatatype(cs.getConceptDatatypeByName("N/A"));
-        concept2.setConceptClass(cs.getConceptClassByName("Misc"));
-        cs.saveConcept(concept2);
-        cs.purgeConcept(concept1);
-
-        Thread.sleep(100);
-
-        Assertions.assertEquals(1, listener.getCreatedCount());
-        Assertions.assertEquals(1, listener.getDeletedCount());
-    }
+	
+	/**
+	 * @see Event#unsubscribe(Class,Collection,EventListener)
+	 */
+	@Test
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	@Verifies(value = "should unsubscribe only for the specified actions", method = "unsubscribe(Class<OpenmrsObject>,Collection,EventListener)")
+	public void unsubscribe_shouldUnsubscribeOnlyForTheSpecifiedActions() throws Exception {
+		ConceptService cs = Context.getConceptService();
+		MockEventListener listener = new MockEventListener(1);
+		Event.subscribe(Concept.class, (String) null, listener);
+		
+		Concept concept1 = new Concept();
+		ConceptName name1 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+		concept1.addName(name1);
+		concept1.setDatatype(cs.getConceptDatatypeByName("N/A"));
+		concept1.setConceptClass(cs.getConceptClassByName("Misc"));
+		cs.saveConcept(concept1);
+		
+		listener.waitForEvents();
+		
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		
+		Event.unsubscribe(Concept.class, Collections.singletonList(Action.CREATED), listener);
+		Concept concept2 = new Concept();
+		ConceptName name2 = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);
+		concept2.addName(name2);
+		concept2.setDatatype(cs.getConceptDatatypeByName("N/A"));
+		concept2.setConceptClass(cs.getConceptClassByName("Misc"));
+		cs.saveConcept(concept2);
+		cs.purgeConcept(concept1);
+		
+		Thread.sleep(100);
+		
+		Assertions.assertEquals(1, listener.getCreatedCount());
+		Assertions.assertEquals(1, listener.getDeletedCount());
+	}
 	
 	/**
 	 * @see {@link Event#unsubscribe(Destination,EventListener)}
