@@ -13,199 +13,166 @@
  */
 package org.openmrs.event;
 
-import javax.jms.Destination;
-import javax.jms.JMSException;
+import org.openmrs.api.context.Context;
+
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 /**
- * Allows listeners to subscribe to possible events. When the event occurs, the listener is called.
+ * Core event constants for OpenMRS entity lifecycle actions, plus a thin facade over the
+ * deprecated subscribe/fire API. New code should subclass {@link TransactionEventListener}
+ * and react to {@link TransactionCommittedEvent} directly; the static methods below remain
+ * only as a bridge for modules written against the previous ActiveMQ-backed implementation.
  */
 public class Event {
-	
-	static EventEngine eventEngine = new EventEngine();
-	
+
 	/**
-	 * These are the core-defined actions that go in topics
+	 * The core-defined actions that represent entity lifecycle events.
 	 */
 	public enum Action {
 		CREATED,
-        UPDATED,
-        RETIRED,
-        UNRETIRED,
-        VOIDED,
-        UNVOIDED,
-        PURGED;
+		UPDATED,
+		RETIRED,
+		UNRETIRED,
+		VOIDED,
+		UNVOIDED,
+		PURGED
+	}
 
-        public static Collection<String> getActionNames() {
-            return Arrays.stream(Action.values()).map(Action::name).collect(Collectors.toList());
-        }
-	};
-	
-	/**
-	 * @param action
-	 * @param object
-	 */
-	public static void fireAction(String action, final Object object) {
-		eventEngine.fireAction(action, object);
+	private static LegacyEventBridge bridge() {
+		return Context.getRegisteredComponent("legacyEventBridge", LegacyEventBridge.class);
 	}
-	
-	public static void fireEvent(final Destination dest, final Object object) {
-		eventEngine.fireEvent(dest, object);
-	}
-	
+
 	/**
-	 * Fires an event to the specified topic
-	 * 
-	 * @param topicName
-	 * @param eventMessage
-	 * @see {@link Action}, {@link EventMessage}
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
 	 */
-	public static void fireEvent(String topicName, EventMessage eventMessage) {
-		eventEngine.fireEvent(topicName, eventMessage);
-	}
-	
-	/**
-	 * Creates a subscription for the specified class and action, if action is null, the
-	 * subscription is created for all the actions
-	 * 
-	 * @param clazz
-	 * @param action
-	 * @should subscribe only to the specified action
-	 * @should subscribe to every action if action is null
-	 * @should not subscribe duplicate event listeners
-	 */
+	@Deprecated
 	public static void subscribe(Class<?> clazz, String action, EventListener listener) {
-		eventEngine.subscribe(clazz, action, listener);
+		if (clazz == null || listener == null) {
+			return;
+		}
+		LegacyEventBridge b = bridge();
+		if (action != null) {
+			b.subscribeClass(clazz, action, listener);
+		} else {
+			for (Action a : Action.values()) {
+				b.subscribeClass(clazz, a.name(), listener);
+			}
+		}
 	}
 
-    /**
-     * Creates a subscription for the specified class and set of actions, if actions are null, the
-     * subscription is created for all the actions
-     *
-     * @param clazz
-     * @param actions
-     * @should subscribe only to the specified action
-     * @should subscribe to every action if action is null
-     * @should not subscribe duplicate event listeners
-     */
-    public static void subscribe(Class<?> clazz, Collection<String> actions, EventListener listener) {
-        eventEngine.subscribe(clazz, actions, listener);
-    }
-	
 	/**
-	 * Creates a subscription to the topic with the specified name
-	 * 
-	 * @param topicName
-	 * @param listener
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
 	 */
+	@Deprecated
+	public static void subscribe(Class<?> clazz, Collection<String> actions, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		LegacyEventBridge b = bridge();
+		if (actions == null) {
+			for (Action a : Action.values()) {
+				b.subscribeClass(clazz, a.name(), listener);
+			}
+		} else {
+			for (String action : actions) {
+				b.subscribeClass(clazz, action, listener);
+			}
+		}
+	}
+
+	/**
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
+	 */
+	@Deprecated
 	public static void subscribe(String topicName, EventListener listener) {
-		eventEngine.subscribe(topicName, listener);
-	}
-	
-	/**
-	 * Removes the subscription associated to the specified class and action, if action is null all
-	 * subscriptions associated to the class are dropped
-	 * 
-	 * @param clazz if null, all objects are unsubscribed
-	 * @param action if null, all actions are unsubscribed
-	 * @param listener the given listener to unsubscribe
-	 */
-	public static void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
-		eventEngine.unsubscribe(clazz, action, listener);
+		if (topicName == null || listener == null) {
+			return;
+		}
+		bridge().subscribeTopic(topicName, listener);
 	}
 
-    /**
-     * Removes the subscription associated to the specified class and set of actions, if action is null all
-     * subscriptions associated to the class are dropped
-     *
-     * @param clazz if null, all objects are unsubscribed
-     * @param actions if null, all actions are unsubscribed
-     * @param listener the given listener to unsubscribe
-     */
-    public static void unsubscribe(Class<?> clazz, Collection<Event.Action> actions, EventListener listener) {
-        eventEngine.unsubscribe(clazz, actions, listener);
-    }
-	
 	/**
-	 * Removes the subscription from the topic with the specified name
-	 * 
-	 * @param topicName
-	 * @param listener
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
 	 */
+	@Deprecated
+	public static void unsubscribe(Class<?> clazz, Action action, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		LegacyEventBridge b = bridge();
+		if (action != null) {
+			b.unsubscribeClass(clazz, action.name(), listener);
+		} else {
+			for (Action a : Action.values()) {
+				b.unsubscribeClass(clazz, a.name(), listener);
+			}
+		}
+	}
+
+	/**
+	 * Symmetric counterpart to {@link #subscribe(Class, String, EventListener)} that accepts any
+	 * action string, including custom names that are not {@link Action} enum constants.
+	 *
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
+	 */
+	@Deprecated
+	public static void unsubscribe(Class<?> clazz, String action, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		LegacyEventBridge b = bridge();
+		if (action != null) {
+			b.unsubscribeClass(clazz, action, listener);
+		} else {
+			for (Action a : Action.values()) {
+				b.unsubscribeClass(clazz, a.name(), listener);
+			}
+		}
+	}
+
+	/**
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
+	 */
+	@Deprecated
+	public static void unsubscribe(Class<?> clazz, Collection<Action> actions, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		LegacyEventBridge b = bridge();
+		Collection<Action> toUnsubscribe = actions != null ? actions : Arrays.asList(Action.values());
+		for (Action action : toUnsubscribe) {
+			b.unsubscribeClass(clazz, action.name(), listener);
+		}
+	}
+
+	/**
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
+	 */
+	@Deprecated
 	public static void unsubscribe(String topicName, EventListener listener) {
-		eventEngine.unsubscribe(topicName, listener);
+		if (topicName == null || listener == null) {
+			return;
+		}
+		bridge().unsubscribeTopic(topicName, listener);
 	}
-	
+
 	/**
-	 * Creates subscriptions for the specified {@link Destination}
-	 * 
-	 * @param destination e.g. org.openmrs.Patient.CREATED or org.openmrs.Patient.DELETED
-	 * @param listenerToRegister
+	 * @deprecated since 5.0.0; entity events are now published automatically by the Hibernate
+	 *             interceptor. Direct invocation remains only for callers that fire ad-hoc
+	 *             actions for non-OpenmrsObject sources.
 	 */
-	public static void subscribe(Destination destination, final EventListener listenerToRegister) {
-		eventEngine.subscribe(destination, listenerToRegister);
+	@Deprecated
+	public static void fireAction(String action, Object object) {
+		bridge().fireAction(action, object);
 	}
-	
+
 	/**
-	 * Removes the subscription associated to the specified {@link Destination}
-	 * 
-	 * @param dest
-	 * @param listener
-	 * @throws JMSException
-	 * @should unsubscribe from the specified destination
-	 * @should maintain subscriptions to the same topic for other listeners
+	 * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
 	 */
-	public static void unsubscribe(Destination dest, EventListener listener) {
-		eventEngine.unsubscribe(dest, listener);
-	}
-	
-	/**
-	 * Called by spring application context. It needs to be non static, but it acts like static.
-	 * 
-	 * @param listenerToRegister and {@link SubscribableEventListener} that specifies which objects
-	 *            and actions it wants to listen to
-	 */
-	public void setSubscription(SubscribableEventListener listenerToRegister) {
-		eventEngine.setSubscription(listenerToRegister);
-	}
-	
-	/**
-	 * Called by spring application context. It needs to be non static, but it acts like static.
-	 * 
-	 * @param listenerToRegister
-	 * @should remove given subscriptions
-	 */
-	public void unsetSubscription(SubscribableEventListener listenerToRegister) {
-		eventEngine.unsetSubscription(listenerToRegister);
-	}
-	
-	/**
-	 * Returns destination for the given class and action.
-	 * 
-	 * @param clazz
-	 * @param action
-	 * @return the destination
-	 */
-	public static Destination getDestination(final Class<?> clazz, final String action) {
-		return eventEngine.getDestination(clazz, action);
-	}
-	
-	/**
-	 * Returns destination for the given topic
-	 * 
-	 * @param topicName
-	 * @return
-	 */
-	public static Destination getDestinationFor(String topicName) {
-		return eventEngine.getDestination(topicName);
-	}
-	
-	/**
-	 * Closes the underlying shared connection which will close the broker too under the hood
-	 */
-	public static void shutdown() {
-		eventEngine.shutdown();
+	@Deprecated
+	public static void fireEvent(String topicName, EventMessage eventMessage) {
+		bridge().fireTopic(topicName, eventMessage);
 	}
 }
+

@@ -16,12 +16,15 @@ package org.openmrs.event;
 import javax.jms.MessageListener;
 
 /**
- * This interface is implemented by modules that want to register/subscribe to
- * events on the {@link Event}. The {@link #handle(ChangeEvent)} method is
- * called when the specific event occurs in OpenMRS.
- * 
- * TODO: add reference to what is in the message object passed to onMessage method
+ * Subscribes to events fired through the legacy {@link Event} static API.
+ *
+ * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead. The JMS-style
+ *             {@code onMessage(Message)} delivery is preserved only for backwards compatibility
+ *             with modules written against the previous ActiveMQ-backed implementation, and will
+ *             be removed in a future release.
  */
+@Deprecated
+@SuppressWarnings("DeprecatedIsStillUsed")
 public interface EventListener extends MessageListener {
 
 }

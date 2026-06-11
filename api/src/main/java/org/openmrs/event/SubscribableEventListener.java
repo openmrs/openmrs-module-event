@@ -13,24 +13,21 @@
  */
 package org.openmrs.event;
 
-import java.util.List;
-
 import org.openmrs.OpenmrsObject;
 
+import java.util.List;
+
 /**
- * This interface is used by modules when doing a simple subscription by passing in only this
- * listener class
+ * Self-describing variant of {@link EventListener}: the module declares which classes and actions
+ * it cares about, and {@link EventActivator} subscribes it on module startup.
+ *
+ * @deprecated since 5.0.0; subclass {@link TransactionEventListener} instead.
  */
+@Deprecated
+@SuppressWarnings("DeprecatedIsStillUsed")
 public interface SubscribableEventListener extends EventListener {
-	
-	/**
-	 * @return a list of classes that this can handle
-	 */
-	public List<Class<? extends OpenmrsObject>> subscribeToObjects();
-	
-	/**
-	 * @return a list of Actions this listener can deal with
-	 */
-	public List<String> subscribeToActions();
-	
+
+	List<Class<? extends OpenmrsObject>> subscribeToObjects();
+
+	List<String> subscribeToActions();
 }

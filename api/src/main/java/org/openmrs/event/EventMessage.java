@@ -17,10 +17,14 @@ import java.io.Serializable;
 import java.util.LinkedHashMap;
 
 /**
- * This class encapsulates data to be sent to the message queue
+ * Payload passed to legacy {@link EventListener}s via the deprecated {@link Event} static API.
+ *
+ * @deprecated since 5.0.0; new code should consume {@link EntityEvent}s delivered through
+ *             {@link TransactionEventListener}.
  */
+@Deprecated
+@SuppressWarnings("DeprecatedIsStillUsed")
 public class EventMessage extends LinkedHashMap<String, Serializable> {
-	
+
 	private static final long serialVersionUID = 1L;
-	
 }

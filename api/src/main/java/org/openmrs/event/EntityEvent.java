@@ -9,20 +9,36 @@
 package org.openmrs.event;
 
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import org.openmrs.OpenmrsObject;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 /**
- * Represents a particular action performed on a particular OpenmrsObject entity
+ * Represents a particular action performed on a particular OpenmrsObject entity.
+ * Equality is based on entity UUID + action, not object reference, to ensure correct
+ * deduplication even when Hibernate returns different proxy objects for the same entity.
  */
-@Data
+@Getter
 @AllArgsConstructor
 public class EntityEvent implements Serializable {
 
 	private OpenmrsObject entity;
 	private Event.Action action;
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (!(o instanceof EntityEvent)) return false;
+		EntityEvent that = (EntityEvent) o;
+		return action == that.action && Objects.equals(entity.getUuid(), that.entity.getUuid());
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(entity.getUuid(), action);
+	}
 
 	@Override
 	public String toString() {
