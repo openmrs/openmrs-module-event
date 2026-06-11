@@ -48,61 +48,66 @@ import org.springframework.jms.core.JmsTemplate;
  * Used by {@link Event}.
  */
 public class EventEngine {
-
+	
 	protected final static String DELIMITER = ":";
-
+	
 	protected static Logger log = LoggerFactory.getLogger(EventEngine.class);
-
+	
 	protected JmsTemplate jmsTemplate = null;
-
+	
 	protected Map<String, TopicSubscriber> subscribers = new HashMap<String, TopicSubscriber>();
-
+	
 	protected SingleConnectionFactory connectionFactory;
-
-    /**
-     * This inner class holds the context for managing a subscription. Basically it serves to simplify using the
-     * {@link EventClassScanner} to manage subscriptions for a specific class
-     *
-     * @param <T>
-     */
-    private static class SubscriptionContext<T> implements AutoCloseable {
-        private volatile Collection<Class<? extends T>> eventClasses = null;
-        private final EventClassScanner classScanner;
-        private final Class<T> clazz;
-
-        public SubscriptionContext(Class<T> clazz) {
-            this.classScanner = EventClassScannerThreadHolder.getCurrentEventClassScanner().orElseGet(EventClassScanner::new);
-            this.clazz = clazz;
-        }
-
-        @Override
-        public void close() {
-            try {
-                if (eventClasses != null) {
-                    eventClasses.clear();
-                }
-            } finally {
-                classScanner.close();
-            }
-        }
-
-        public Class<T> getClazz() {
-            return clazz;
-        }
-
-        public Collection<Class<? extends T>> getEventClasses() throws IOException, ClassNotFoundException {
-            if (eventClasses == null) {
-                synchronized (this) {
-                    if (eventClasses == null) {
-                        eventClasses = classScanner.getClasses(clazz);
-                    }
-                }
-            }
-
-            return eventClasses;
-        }
-    }
-
+	
+	/**
+	 * This inner class holds the context for managing a subscription. Basically it serves to simplify
+	 * using the {@link EventClassScanner} to manage subscriptions for a specific class
+	 *
+	 * @param <T>
+	 */
+	private static class SubscriptionContext<T> implements AutoCloseable {
+		
+		private volatile Collection<Class<? extends T>> eventClasses = null;
+		
+		private final EventClassScanner classScanner;
+		
+		private final Class<T> clazz;
+		
+		public SubscriptionContext(Class<T> clazz) {
+			this.classScanner = EventClassScannerThreadHolder.getCurrentEventClassScanner()
+			        .orElseGet(EventClassScanner::new);
+			this.clazz = clazz;
+		}
+		
+		@Override
+		public void close() {
+			try {
+				if (eventClasses != null) {
+					eventClasses.clear();
+				}
+			}
+			finally {
+				classScanner.close();
+			}
+		}
+		
+		public Class<T> getClazz() {
+			return clazz;
+		}
+		
+		public Collection<Class<? extends T>> getEventClasses() throws IOException, ClassNotFoundException {
+			if (eventClasses == null) {
+				synchronized (this) {
+					if (eventClasses == null) {
+						eventClasses = classScanner.getClasses(clazz);
+					}
+				}
+			}
+			
+			return eventClasses;
+		}
+	}
+	
 	/**
 	 * @see Event#fireAction(String, Object)
 	 */
@@ -110,7 +115,7 @@ public class EventEngine {
 		Destination key = getDestination(object.getClass(), action);
 		fireEvent(key, object);
 	}
-
+	
 	/**
 	 * @see Event#fireEvent(Destination, Object)
 	 */
@@ -121,10 +126,10 @@ public class EventEngine {
 		}
 		eventMessage.put("classname", object.getClass().getName());
 		eventMessage.put("action", getAction(dest));
-
+		
 		doFireEvent(dest, eventMessage);
 	}
-
+	
 	/**
 	 * @see Event#fireEvent(String, EventMessage)
 	 */
@@ -134,115 +139,116 @@ public class EventEngine {
 		}
 		doFireEvent(getDestination(topicName), eventMessage);
 	}
-
+	
 	private void doFireEvent(final Destination dest, final EventMessage eventMessage) {
 		initializeIfNeeded();
-
+		
 		jmsTemplate.send(dest, session -> {
-            if (log.isInfoEnabled())
-                log.info("Sending data " + eventMessage);
-
-            MapMessage mapMessage = session.createMapMessage();
-            if (eventMessage != null) {
-                for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
-                    mapMessage.setObject(entry.getKey(), entry.getValue());
-                }
-            }
-
-            return mapMessage;
-        });
+			if (log.isInfoEnabled())
+				log.info("Sending data " + eventMessage);
+			
+			MapMessage mapMessage = session.createMapMessage();
+			if (eventMessage != null) {
+				for (Map.Entry<String, Serializable> entry : eventMessage.entrySet()) {
+					mapMessage.setObject(entry.getKey(), entry.getValue());
+				}
+			}
+			
+			return mapMessage;
+		});
 	}
-
+	
 	private boolean enabled() {
-        return !OpenmrsUtil.getApplicationDataDirectoryAsFile().toPath().resolve("activemq-data").resolve("disabled").toFile().exists();
+		return !OpenmrsUtil.getApplicationDataDirectoryAsFile().toPath().resolve("activemq-data").resolve("disabled")
+		        .toFile().exists();
 	}
-
-
-    private synchronized void initializeIfNeeded() {
+	
+	private synchronized void initializeIfNeeded() {
 		if (jmsTemplate == null) {
-            log.info("creating connection factory");
+			log.info("creating connection factory");
 			String property = getExternalUrl();
-            String brokerURL;
-            if (property == null || property.isEmpty()) {
-				String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data").getAbsolutePath();
+			String brokerURL;
+			if (property == null || property.isEmpty()) {
+				String dataDirectory = new File(OpenmrsUtil.getApplicationDataDirectory(), "activemq-data")
+				        .getAbsolutePath();
 				try {
-                    dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
-                }
-                catch (UnsupportedEncodingException e) {
-                    throw new RuntimeException("Failed to encode URI", e);
-                }
-                brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
-                    + dataDirectory;
-            } else {
-                brokerURL = "tcp://" + property;
-            }
-
-            ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
-            connectionFactory = new SingleConnectionFactory(cf);
-            jmsTemplate = new JmsTemplate(connectionFactory);
-        } else {
-            log.trace("messageListener already defined");
-        }
-    }
-    
-    private String getExternalUrl() {
-    	try {
+					dataDirectory = URLEncoder.encode(dataDirectory, "UTF-8");
+				}
+				catch (UnsupportedEncodingException e) {
+					throw new RuntimeException("Failed to encode URI", e);
+				}
+				brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
+				        + dataDirectory;
+			} else {
+				brokerURL = "tcp://" + property;
+			}
+			
+			ActiveMQConnectionFactory cf = new ActiveMQConnectionFactory(brokerURL);
+			connectionFactory = new SingleConnectionFactory(cf);
+			jmsTemplate = new JmsTemplate(connectionFactory);
+		} else {
+			log.trace("messageListener already defined");
+		}
+	}
+	
+	private String getExternalUrl() {
+		try {
 			Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-    		return Context.getRegisteredComponent("adminService", AdministrationService.class)
-					.getGlobalProperty("activeMQ.externalUrl");
-    	}
-    	catch (NullPointerException ex) {
-    		log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting" , ex);
-    	}
+			return Context.getRegisteredComponent("adminService", AdministrationService.class)
+			        .getGlobalProperty("activeMQ.externalUrl");
+		}
+		catch (NullPointerException ex) {
+			log.error("AdministrationService not yet initialized to get the activeMQ.externalUrl setting", ex);
+		}
 		finally {
 			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
 		}
-    	return null;
-    }
-
+		return null;
+	}
+	
 	/**
 	 * @see Event#subscribe(Class, String, EventListener)
 	 */
 	public <T> void subscribe(Class<T> clazz, String action, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
-        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
-            if (action != null) {
-                subscribeToClass(context, Collections.singletonList(action), listener);
-                log.info("{} subscribed to {} events for {}", listener.getClass(), action, clazz.getSimpleName());
-            } else {
-                subscribeToClass(context, Event.Action.getActionNames(), listener);
-                log.info("{} subscribed to all events for {}", listener.getClass(), clazz.getSimpleName());
-            }
-        }
-
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
+		try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+			if (action != null) {
+				subscribeToClass(context, Collections.singletonList(action), listener);
+				log.info("{} subscribed to {} events for {}", listener.getClass(), action, clazz.getSimpleName());
+			} else {
+				subscribeToClass(context, Event.Action.getActionNames(), listener);
+				log.info("{} subscribed to all events for {}", listener.getClass(), clazz.getSimpleName());
+			}
+		}
+		
 	}
-
-    /**
-     *
-     */
-    public <T> void subscribe(Class<T> clazz, Collection<String> actions, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
-        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
-            if (actions != null) {
-                if (!actions.isEmpty()) {
-                    subscribeToClass(context, actions, listener);
-                    log.info("{} subscribed to {} events for {}", listener.getClass(), StringUtils.join(actions, ','), clazz.getSimpleName());
-                }
-            } else {
-                subscribeToClass(context, Event.Action.getActionNames(), listener);
-            }
-        }
-    }
-
-    /**
-	 * Adds subscriptions to the topics that match the specified action and class including
-	 * subclasses
+	
+	/**
+	 *
+	 */
+	public <T> void subscribe(Class<T> clazz, Collection<String> actions, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
+		try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+			if (actions != null) {
+				if (!actions.isEmpty()) {
+					subscribeToClass(context, actions, listener);
+					log.info("{} subscribed to {} events for {}", listener.getClass(), StringUtils.join(actions, ','),
+					    clazz.getSimpleName());
+				}
+			} else {
+				subscribeToClass(context, Event.Action.getActionNames(), listener);
+			}
+		}
+	}
+	
+	/**
+	 * Adds subscriptions to the topics that match the specified action and class including subclasses
 	 *
 	 * @param context the current subscription context
 	 * @param actions the action(s) to match
@@ -251,16 +257,16 @@ public class EventEngine {
 	private <T> void subscribeToClass(SubscriptionContext<T> context, Collection<String> actions, EventListener listener) {
 		try {
 			for (Class<? extends T> c : context.getEventClasses()) {
-                for (String action : actions) {
-                    Destination dest = getDestination(c, action);
-                    subscribe(dest, listener);
-                }
+				for (String action : actions) {
+					Destination dest = getDestination(c, action);
+					subscribe(dest, listener);
+				}
 			}
 		}
 		catch (IOException | ClassNotFoundException e) {
 			throw new APIException("Exception raised while creating subscription for " + context.getClazz(), e);
 		}
-    }
+	}
 	
 	/**
 	 * @see Event#subscribe(String, EventListener)
@@ -269,7 +275,7 @@ public class EventEngine {
 		if (StringUtils.isBlank(topicName)) {
 			throw new APIException("Topic name cannot be null or blank");
 		}
-
+		
 		subscribe(getDestination(topicName), listener);
 	}
 	
@@ -277,36 +283,37 @@ public class EventEngine {
 	 * @see Event#unsubscribe(Class, Event.Action, EventListener)
 	 */
 	public void unsubscribe(Class<?> clazz, Event.Action action, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
 		if (action != null) {
 			unsubscribeFromClass(clazz, action.toString(), listener);
-            log.info("{} unsubscribed from {} events for {}", action, listener.getClass(), clazz.getSimpleName());
+			log.info("{} unsubscribed from {} events for {}", action, listener.getClass(), clazz.getSimpleName());
 		} else {
-            unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
-            log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
+			unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+			log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
 		}
 	}
-
-    /**
-     * @see Event#unsubscribe(Class, Collection, EventListener)
-     */
-    public void unsubscribe(Class<?> clazz, Collection<Event.Action> action, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
-        if (action != null) {
-            List<String> eventActions = action.stream().map(Event.Action::toString).collect(Collectors.toList());
-            unsubscribeFromClass(clazz, eventActions, listener);
-            log.info("{} unsubscribed from {} events for {}", listener.getClass(), StringUtils.join(eventActions, ','), clazz.getSimpleName());
-        } else {
-            unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
-            log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
-        }
-    }
+	
+	/**
+	 * @see Event#unsubscribe(Class, Collection, EventListener)
+	 */
+	public void unsubscribe(Class<?> clazz, Collection<Event.Action> action, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
+		if (action != null) {
+			List<String> eventActions = action.stream().map(Event.Action::toString).collect(Collectors.toList());
+			unsubscribeFromClass(clazz, eventActions, listener);
+			log.info("{} unsubscribed from {} events for {}", listener.getClass(), StringUtils.join(eventActions, ','),
+			    clazz.getSimpleName());
+		} else {
+			unsubscribeFromClass(clazz, Event.Action.getActionNames(), listener);
+			log.info("{} unsubscribed from all events for {}", listener.getClass(), clazz.getSimpleName());
+		}
+	}
 	
 	/**
 	 * Removes subscriptions from the topics that match the specified action and class including
@@ -317,10 +324,10 @@ public class EventEngine {
 	 * @param listener the Listener subscribing to the top
 	 */
 	private <T> void unsubscribeFromClass(Class<T> clazz, String action, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
 		try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
 			for (Class<? extends T> c : context.getEventClasses()) {
 				Destination dest = getDestination(c, action);
@@ -330,33 +337,33 @@ public class EventEngine {
 		catch (IOException | ClassNotFoundException e) {
 			throw new APIException(e);
 		}
-    }
-
-    /**
-     * Removes subscriptions from the topics that match the specified action and class including
-     * subclasses
-     *
-     * @param clazz the class to match
-     * @param actions the actions to match
-     * @param listener the Listener subscribing to the top
-     */
-    private <T> void unsubscribeFromClass(Class<T> clazz, Collection<String> actions, EventListener listener) {
-        if (clazz == null || listener == null) {
-            return;
-        }
-
-        try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
-            for (Class<? extends T> c : context.getEventClasses()) {
-                for (String action : actions) {
-                    Destination dest = getDestination(c, action);
-                    unsubscribe(dest, listener);
-                }
-            }
-        }
-        catch (IOException | ClassNotFoundException e) {
-            throw new APIException(e);
-        }
-    }
+	}
+	
+	/**
+	 * Removes subscriptions from the topics that match the specified action and class including
+	 * subclasses
+	 *
+	 * @param clazz the class to match
+	 * @param actions the actions to match
+	 * @param listener the Listener subscribing to the top
+	 */
+	private <T> void unsubscribeFromClass(Class<T> clazz, Collection<String> actions, EventListener listener) {
+		if (clazz == null || listener == null) {
+			return;
+		}
+		
+		try (SubscriptionContext<T> context = new SubscriptionContext<>(clazz)) {
+			for (Class<? extends T> c : context.getEventClasses()) {
+				for (String action : actions) {
+					Destination dest = getDestination(c, action);
+					unsubscribe(dest, listener);
+				}
+			}
+		}
+		catch (IOException | ClassNotFoundException e) {
+			throw new APIException(e);
+		}
+	}
 	
 	/**
 	 * @see Event#unsubscribe(String, EventListener)
@@ -386,34 +393,35 @@ public class EventEngine {
 	 * @see Event#subscribe(Destination, EventListener)
 	 */
 	public void subscribe(Destination destination, final EventListener listenerToRegister) {
-		if(enabled()) {
+		if (enabled()) {
 			initializeIfNeeded();
-
+			
 			TopicConnection conn;
 			Topic topic = (Topic) destination;
-
+			
 			try {
 				conn = (TopicConnection) jmsTemplate.getConnectionFactory().createConnection();
 				TopicSession session = conn.createTopicSession(false, TopicSession.AUTO_ACKNOWLEDGE);
 				TopicSubscriber subscriber = session.createSubscriber(topic);
 				subscriber.setMessageListener(new MessageListener() {
-
+					
 					@Override
 					public void onMessage(Message message) {
 						listenerToRegister.onMessage(message);
 					}
 				});
-
+				
 				//Check if this is a duplicate and remove it
 				String key = topic.getTopicName() + DELIMITER + listenerToRegister.getClass().getName();
 				if (subscribers.containsKey(key)) {
 					unsubscribe(destination, listenerToRegister);
 				}
-
+				
 				subscribers.put(key, subscriber);
 				conn.start();
-
-			} catch (JMSException e) {
+				
+			}
+			catch (JMSException e) {
 				log.error("Exception occurred while subscribing", e);
 			}
 		}
@@ -423,18 +431,19 @@ public class EventEngine {
 	 * @see Event#unsubscribe(Destination, EventListener)
 	 */
 	public void unsubscribe(Destination dest, EventListener listener) {
-		if(enabled()) {
+		if (enabled()) {
 			initializeIfNeeded();
-
+			
 			if (dest != null) {
 				Topic topic = (Topic) dest;
 				try {
 					String key = topic.getTopicName() + DELIMITER + listener.getClass().getName();
 					if (subscribers.get(key) != null)
 						subscribers.get(key).close();
-
+					
 					subscribers.remove(key);
-				} catch (JMSException e) {
+				}
+				catch (JMSException e) {
 					log.error("Failed to unsubscribe from the specified destination:", e);
 				}
 			}
