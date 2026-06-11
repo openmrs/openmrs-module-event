@@ -20,10 +20,11 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 public class EntityEvent implements Serializable {
-
+	
 	private OpenmrsObject entity;
+	
 	private Event.Action action;
-
+	
 	@Override
 	public String toString() {
 		return action + " " + entity.getClass().getSimpleName() + "[" + entity.getUuid() + "]";

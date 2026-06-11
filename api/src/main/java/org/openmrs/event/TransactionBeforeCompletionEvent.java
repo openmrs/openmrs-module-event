@@ -11,11 +11,12 @@ package org.openmrs.event;
 import java.util.Set;
 
 /**
- * Represents an event notification that a transaction is ready to complete
- * Listeners for this event can make changes within the same transaction as the underlying data being changed
+ * Represents an event notification that a transaction is ready to complete Listeners for this event
+ * can make changes within the same transaction as the underlying data being changed
  */
 public class TransactionBeforeCompletionEvent extends TransactionEvent {
-    public TransactionBeforeCompletionEvent(Object source, Set<EntityEvent> events) {
-        super(source, events);
-    }
+	
+	public TransactionBeforeCompletionEvent(Object source, Set<EntityEvent> events) {
+		super(source, events);
+	}
 }

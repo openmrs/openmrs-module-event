@@ -5,9 +5,9 @@ import org.openmrs.Patient;
 import org.openmrs.api.OpenmrsService;
 
 public interface MockNestedService extends OpenmrsService {
-
-    void outerTransaction(Concept concept, boolean innerRollback, boolean outerRollback);
-
-    void innerTransaction(boolean rollback);
-
+	
+	void outerTransaction(Concept concept, boolean innerRollback, boolean outerRollback);
+	
+	void innerTransaction(boolean rollback);
+	
 }

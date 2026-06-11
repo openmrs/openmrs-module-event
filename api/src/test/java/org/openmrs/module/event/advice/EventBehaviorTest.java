@@ -42,7 +42,7 @@ import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("deprecation")
 public class EventBehaviorTest extends BaseEventTest {
-
+	
 	@Autowired
 	ConceptService conceptService;
 	
@@ -53,19 +53,18 @@ public class EventBehaviorTest extends BaseEventTest {
 		eventEngine = spy(EventEngineUtil.getEventEngine());
 		EventEngineUtil.setEventEngine(eventEngine);
 	}
-
-    @AfterEach
-    public void afterTest() {
-        reset(eventEngine);  // need to manually reset the event engine to clean up from previous test
-    }
-
-
+	
+	@AfterEach
+	public void afterTest() {
+		reset(eventEngine); // need to manually reset the event engine to clean up from previous test
+	}
+	
 	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
 	public void shouldFireEventOnCreate() throws Exception {
 		Concept concept = randomConcept();
 		conceptService.saveConcept(concept);
-
+		
 		verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
 	}
 	
@@ -236,72 +235,69 @@ public class EventBehaviorTest extends BaseEventTest {
 		ps.savePatientIdentifier(pId);
 		verify(eventEngine).fireAction(Event.Action.UNVOIDED.name(), pId);
 	}
-
-    @Test
+	
+	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldFireEventsOnNestedTransactions() throws Exception {
-
-        Concept concept = randomConcept();
-
-        Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
-
-    }
-
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
-
-        Concept concept = randomConcept();
-
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
-        }
-        catch (Exception e) {
-        }
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
-
-    }
-
-    @Test
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
-
+	public void shouldFireEventsOnNestedTransactions() throws Exception {
+		
 		Concept concept = randomConcept();
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, true, false);
-        }
-        catch (Exception e) {
-        }
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
-    }
-
-    @Test
+		
+		Context.getService(MockNestedService.class).outerTransaction(concept, false, false);
+		
+		Patient patient = Context.getPatientService().getPatient(2);
+		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+		verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
+		
+	}
+	
+	@Test
 	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-    public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
-
-        Concept concept = randomConcept();
-
-        try {
-            Context.getService(MockNestedService.class).outerTransaction(concept, true, true);
-        }
-        catch (Exception e) {
-        }
-
-        Patient patient = Context.getPatientService().getPatient(2);
-        verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
-        verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
-    }
-
+	public void shouldNotFireInnerEventOnInnerTransactionIfRollback() throws Exception {
+		
+		Concept concept = randomConcept();
+		
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, false, true);
+		}
+		catch (Exception e) {}
+		
+		Patient patient = Context.getPatientService().getPatient(2);
+		verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
+		verify(eventEngine).fireAction(Event.Action.CREATED.name(), concept);
+		
+	}
+	
+	@Test
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public void shouldNotFireOuterEventOnOuterTransactionIfRollback() throws Exception {
+		
+		Concept concept = randomConcept();
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, true, false);
+		}
+		catch (Exception e) {}
+		
+		Patient patient = Context.getPatientService().getPatient(2);
+		verify(eventEngine).fireAction(Event.Action.UPDATED.name(), patient);
+		verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
+	}
+	
+	@Test
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public void shouldNotFireEitherEventOnBothTransactionsIfBothRollbacked() throws Exception {
+		
+		Concept concept = randomConcept();
+		
+		try {
+			Context.getService(MockNestedService.class).outerTransaction(concept, true, true);
+		}
+		catch (Exception e) {}
+		
+		Patient patient = Context.getPatientService().getPatient(2);
+		verify(eventEngine, never()).fireAction(Event.Action.UPDATED.name(), patient);
+		verify(eventEngine, never()).fireAction(Event.Action.CREATED.name(), concept);
+	}
+	
 	Concept randomConcept() {
 		Concept concept = new Concept();
 		ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);

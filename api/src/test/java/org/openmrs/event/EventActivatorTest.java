@@ -35,13 +35,13 @@ import java.util.UUID;
 
 @SuppressWarnings("deprecation")
 public class EventActivatorTest extends BaseModuleContextSensitiveTest {
-
+	
 	@Autowired
 	TestSubscribableEventListener listener;
-
+	
 	@Autowired
 	ConceptService conceptService;
-
+	
 	@Before
 	public void before() {
 		// reset
@@ -50,7 +50,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 		listener.setUpdatedCount(0);
 		listener.setExpectedEventsCount(0);
 	}
-
+	
 	/**
 	 * @see {@link EventActivator#started()}
 	 */
@@ -59,37 +59,37 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@Verifies(value = "should create subscriptions for all subscribable event listeners", method = "started()")
 	public void started_shouldCreateSubscriptionsForAllSubscribableEventListeners() throws Exception {
 		Concept concept = conceptService.getConcept(3);
-
+		
 		conceptService.saveConcept(concept);
 		Concept concept2 = randomConcept();
 		conceptService.saveConcept(concept2);
 		conceptService.purgeConcept(concept2);
-
+		
 		// sanity check
 		listener.waitForEvents();
 		Assert.assertEquals(0, listener.getCreatedCount());
 		Assert.assertEquals(0, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
-
+		
 		listener.setExpectedEventsCount(2);
-
+		
 		new EventActivator().started();
-
+		
 		concept.setVersion("new version");
 		conceptService.saveConcept(concept);
-
+		
 		conceptService.saveConcept(concept);
 		Concept concept3 = randomConcept();
 		conceptService.saveConcept(concept3);
 		conceptService.purgeConcept(concept3);
-
+		
 		listener.waitForEvents();
-
+		
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(2, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
 	}
-
+	
 	/**
 	 * @see {@link EventActivator#stopped()}
 	 */
@@ -98,45 +98,45 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 	@Verifies(value = "should shutdown the jms connection", method = "stopped()")
 	public void stopped_shouldShutdownTheJmsConnection() throws Exception {
 		listener.setExpectedEventsCount(2);
-
+		
 		new EventActivator().started();
-
+		
 		Concept concept = conceptService.getConcept(3);
 		concept.setVersion("new version");
 		conceptService.saveConcept(concept);
-
+		
 		Concept concept3 = randomConcept();
 		conceptService.saveConcept(concept3);
 		conceptService.purgeConcept(concept3);
-
+		
 		listener.waitForEvents();
-
+		
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
-
+		
 		new EventActivator().stopped();
-
+		
 		concept.setVersion("another version");
 		conceptService.saveConcept(concept);
-
+		
 		Concept concept4 = randomConcept();
 		conceptService.saveConcept(concept4);
 		conceptService.purgeConcept(concept4);
-
+		
 		// there should have been no changes
 		Assert.assertEquals(1, listener.getCreatedCount());
 		Assert.assertEquals(1, listener.getUpdatedCount());
 		Assert.assertEquals(0, listener.getDeletedCount());
 	}
-
+	
 	@Handler
 	public static class TestSubscribableEventListener extends MockEventListener implements SubscribableEventListener {
-
+		
 		public TestSubscribableEventListener() {
 			super(0);
 		}
-
+		
 		/**
 		 * @see org.openmrs.event.SubscribableEventListener#subscribeToObjects()
 		 */
@@ -146,7 +146,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 			clazzes.add(Concept.class);
 			return clazzes;
 		}
-
+		
 		/**
 		 * @see org.openmrs.event.SubscribableEventListener#subscribeToActions()
 		 */
@@ -158,7 +158,7 @@ public class EventActivatorTest extends BaseModuleContextSensitiveTest {
 			return actions;
 		}
 	}
-
+	
 	Concept randomConcept() {
 		Concept concept = new Concept();
 		ConceptName name = new ConceptName(UUID.randomUUID().toString(), Locale.ENGLISH);

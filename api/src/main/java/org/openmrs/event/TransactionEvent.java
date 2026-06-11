@@ -17,14 +17,16 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Represents a collection of entity changes during the course of the same transaction, and the status of that tx
+ * Represents a collection of entity changes during the course of the same transaction, and the
+ * status of that tx
  */
-@ToString @EqualsAndHashCode(callSuper = false)
+@ToString
+@EqualsAndHashCode(callSuper = false)
 public abstract class TransactionEvent extends ApplicationEvent {
-
+	
 	@Getter
 	private Set<EntityEvent> events;
-
+	
 	public TransactionEvent(Object source, Set<EntityEvent> incomingEvents) {
 		super(source);
 		if (events == null) {
