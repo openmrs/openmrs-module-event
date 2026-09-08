@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/openmrs/openmrs-module-event.svg?branch=master)](https://travis-ci.org/openmrs/openmrs-module-event)
+[![Build Status](https://github.com/openmrs/openmrs-module-event/actions/workflows/build.yml/badge.svg)](https://github.com/openmrs/openmrs-module-event/actions/workflows/build.yml)
 
 openmrs-module-event
 ====================
