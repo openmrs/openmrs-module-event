@@ -35,7 +35,7 @@
 	</modules>
 
 	<properties>
-		<openmrsVersion>2.7.0</openmrsVersion>
+		<openmrsVersion>2.7.9</openmrsVersion>
 		<lombokVersion>1.18.42</lombokVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
