@@ -31,16 +31,13 @@
 		<dependency>
 			<groupId>org.openmrs.web</groupId>
 			<artifactId>openmrs-web</artifactId>
-			<type>jar</type>
-			<version>${openmrsVersion}</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.openmrs.web</groupId>
 			<artifactId>openmrs-web</artifactId>
-			<type>test-jar</type>
-			<version>${openmrsVersion}</version>
+			<classifier>tests</classifier>
 			<scope>test</scope>
 		</dependency>
 
