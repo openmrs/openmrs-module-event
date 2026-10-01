@@ -26,23 +26,23 @@ import java.util.Set;
 public abstract class TransactionEvent extends ApplicationEvent {
 	
 	@Getter
-	private Set<EntityEvent> events;
+	private Set<EntityActionEvent> events;
 	
-	public TransactionEvent(Object source, Set<EntityEvent> incomingEvents) {
+	public TransactionEvent(Object source, Set<EntityActionEvent> incomingEvents) {
 		super(source);
 		if (events == null) {
 			events = new LinkedHashSet<>();
 		}
 		if (incomingEvents != null) {
 			// Do not add duplicate events; CREATE AND PURGE take precedence over UPDATE events
-			for (EntityEvent incomingEvent : incomingEvents) {
+			for (EntityActionEvent incomingEvent : incomingEvents) {
 				boolean hasEvent = events.contains(incomingEvent);
 				if (!hasEvent && incomingEvent.getAction() == Event.Action.UPDATED) {
-					hasEvent = events.contains(new EntityEvent(incomingEvent.getEntity(), Event.Action.CREATED));
-					hasEvent = hasEvent || events.contains(new EntityEvent(incomingEvent.getEntity(), Event.Action.PURGED));
+					hasEvent = events.contains(new EntityActionEvent(incomingEvent.getEntity(), Event.Action.CREATED));
+					hasEvent = hasEvent || events.contains(new EntityActionEvent(incomingEvent.getEntity(), Event.Action.PURGED));
 				}
 				if (!hasEvent && incomingEvent.getAction() == Event.Action.PURGED) {
-					events.remove(new EntityEvent(incomingEvent.getEntity(), Event.Action.UPDATED));
+					events.remove(new EntityActionEvent(incomingEvent.getEntity(), Event.Action.UPDATED));
 				}
 				if (!hasEvent) {
 					events.add(incomingEvent);

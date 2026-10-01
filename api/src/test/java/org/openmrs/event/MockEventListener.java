@@ -12,11 +12,11 @@ package org.openmrs.event;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.Message;
+import jakarta.jms.JMSException;
+import jakarta.jms.MapMessage;
+import jakarta.jms.Message;
 
-import junit.framework.Assert;
+import org.junit.jupiter.api.Assertions;
 
 import org.openmrs.event.Event.Action;
 
@@ -117,7 +117,7 @@ public class MockEventListener implements EventListener {
 	}
 	
 	/**
-	 * @see javax.jms.MessageListener#onMessage(Message)
+	 * @see jakarta.jms.MessageListener#onMessage(Message)
 	 */
 	@Override
 	public void onMessage(Message message) {
@@ -133,7 +133,7 @@ public class MockEventListener implements EventListener {
 			latch.countDown();
 		}
 		catch (JMSException e) {
-			Assert.fail(e.getMessage());
+			Assertions.fail(e.getMessage());
 		}
 	}
 	

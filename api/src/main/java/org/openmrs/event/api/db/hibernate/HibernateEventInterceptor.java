@@ -10,9 +10,8 @@
 package org.openmrs.event.api.db.hibernate;
 
 import lombok.Setter;
-import org.apache.commons.lang.BooleanUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.hibernate.CallbackException;
-import org.hibernate.EmptyInterceptor;
 import org.hibernate.Interceptor;
 import org.hibernate.Transaction;
 import org.hibernate.collection.spi.PersistentCollection;
@@ -20,7 +19,7 @@ import org.hibernate.type.Type;
 import org.openmrs.OpenmrsObject;
 import org.openmrs.Retireable;
 import org.openmrs.Voidable;
-import org.openmrs.event.EntityEvent;
+import org.openmrs.event.EntityActionEvent;
 import org.openmrs.event.Event;
 import org.openmrs.event.Event.Action;
 import org.openmrs.event.TransactionAfterBeginEvent;
@@ -34,9 +33,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.stereotype.Component;
 
-import javax.transaction.Status;
-import javax.transaction.Synchronization;
-import java.io.Serializable;
+import jakarta.transaction.Status;
+import jakarta.transaction.Synchronization;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.LinkedHashSet;
@@ -49,16 +47,14 @@ import java.util.Set;
  * a Stack here to handle any nested transactions that may occur within a single thread
  */
 @Component
-public class HibernateEventInterceptor extends EmptyInterceptor implements ApplicationEventPublisherAware {
+public class HibernateEventInterceptor implements Interceptor, ApplicationEventPublisherAware {
 	
 	private static final Logger log = LoggerFactory.getLogger(HibernateEventInterceptor.class);
-	
-	private static final long serialVersionUID = 6697237884030315867L;
 	
 	@Setter
 	private ApplicationEventPublisher applicationEventPublisher;
 	
-	private final ThreadLocal<Deque<Set<EntityEvent>>> events = new ThreadLocal<>();
+	private final ThreadLocal<Deque<Set<EntityActionEvent>>> events = new ThreadLocal<>();
 	
 	/**
 	 * @param event the event to publish
@@ -73,7 +69,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	}
 	
 	/**
-	 * @see EmptyInterceptor#afterTransactionBegin(Transaction)
+	 * @see Interceptor#afterTransactionBegin(Transaction)
 	 */
 	@Override
 	public void afterTransactionBegin(Transaction tx) {
@@ -101,7 +97,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 					}
 				}
 				finally {
-					Deque<Set<EntityEvent>> eventStack = events.get();
+					Deque<Set<EntityActionEvent>> eventStack = events.get();
 					eventStack.pop();
 					if (eventStack.isEmpty()) {
 						events.remove();
@@ -116,7 +112,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * This is called when an entity is created, not when it is updated
 	 */
 	@Override
-	public boolean onSave(Object entity, Serializable id, Object[] state, String[] propertyNames, Type[] types) {
+	public boolean onSave(Object entity, Object id, Object[] state, String[] propertyNames, Type[] types) {
 		log.trace("onSave: {}", entity);
 		handleEntity(entity, Action.CREATED);
 		return false; //tells hibernate that there are no changes made here that need to be propagated to the persistent object and DB
@@ -127,7 +123,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * special case that we consider generally as representing a delete/undelete operation
 	 */
 	@Override
-	public boolean onFlushDirty(Object entity, Serializable id, Object[] currentState, Object[] previousState,
+	public boolean onFlushDirty(Object entity, Object id, Object[] currentState, Object[] previousState,
 	        String[] propertyNames, Type[] types) {
 		log.trace("onFlushDirty: {}", entity);
 		handleEntity(entity, Action.UPDATED);
@@ -160,7 +156,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * update of the object containing the collection
 	 */
 	@Override
-	public void onCollectionRemove(Object collection, Serializable key) throws CallbackException {
+	public void onCollectionRemove(Object collection, Object key) throws CallbackException {
 		log.trace("onCollectionRemove");
 		if (collection instanceof PersistentCollection) {
 			PersistentCollection persistentCollection = (PersistentCollection) collection;
@@ -175,7 +171,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * update of the object containing the collection
 	 */
 	@Override
-	public void onCollectionRecreate(Object collection, Serializable key) throws CallbackException {
+	public void onCollectionRecreate(Object collection, Object key) throws CallbackException {
 		log.trace("onCollectionRecreate");
 		if (collection instanceof PersistentCollection) {
 			PersistentCollection persistentCollection = (PersistentCollection) collection;
@@ -190,7 +186,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * update of the object containing the collection
 	 */
 	@Override
-	public void onCollectionUpdate(Object collection, Serializable key) throws CallbackException {
+	public void onCollectionUpdate(Object collection, Object key) throws CallbackException {
 		log.trace("onCollectionUpdate");
 		if (collection instanceof PersistentCollection) {
 			PersistentCollection persistentCollection = (PersistentCollection) collection;
@@ -204,7 +200,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	 * This is called when an entity is deleted
 	 */
 	@Override
-	public void onDelete(Object entity, Serializable id, Object[] state, String[] propertyNames, Type[] types) {
+	public void onDelete(Object entity, Object id, Object[] state, String[] propertyNames, Type[] types) {
 		log.trace("onDelete: {}", entity);
 		handleEntity(entity, Action.PURGED);
 	}
@@ -215,7 +211,7 @@ public class HibernateEventInterceptor extends EmptyInterceptor implements Appli
 	protected void handleEntity(Object entity, Event.Action action) {
 		if (entity instanceof OpenmrsObject) {
 			OpenmrsObject openmrsObject = (OpenmrsObject) entity;
-			EntityEvent event = new EntityEvent(openmrsObject, action);
+			EntityActionEvent event = new EntityActionEvent(openmrsObject, action);
 			events.get().peek().add(event);
 			log.trace("{}", event);
 		} else {

@@ -4,7 +4,7 @@
 
 	<groupId>org.openmrs</groupId>
 	<artifactId>event</artifactId>
-	<version>4.1.0-SNAPSHOT</version>
+	<version>5.0.0-SNAPSHOT</version>
 
 	<packaging>pom</packaging>
 	<name>Event Module</name>
@@ -35,10 +35,24 @@
 	</modules>
 
 	<properties>
-		<openmrsVersion>2.7.0</openmrsVersion>
+		<openmrsVersion>3.0.0-SNAPSHOT</openmrsVersion>
 		<lombokVersion>1.18.42</lombokVersion>
+		<activemqVersion>6.3.2</activemqVersion>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.release>21</maven.compiler.release>
 	</properties>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>org.openmrs</groupId>
+				<artifactId>openmrs-bom</artifactId>
+				<version>${openmrsVersion}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<dependencies>
 		<dependency>
@@ -54,16 +68,6 @@
 			<version>${openmrsVersion}</version>
 			<type>test-jar</type>
 			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.powermock</groupId>
-					<artifactId>powermock-api-mockito</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.powermock</groupId>
-					<artifactId>powermock-api-mockito2</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.openmrs.test</groupId>
@@ -71,16 +75,6 @@
 			<version>${openmrsVersion}</version>
 			<type>pom</type>
 			<scope>test</scope>
-			<exclusions>
-				<exclusion>
-					<groupId>org.powermock</groupId>
-					<artifactId>powermock-api-mockito</artifactId>
-				</exclusion>
-				<exclusion>
-					<groupId>org.powermock</groupId>
-					<artifactId>powermock-api-mockito2</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -99,8 +93,7 @@
 					<artifactId>maven-compiler-plugin</artifactId>
 					<version>3.14.1</version>
 					<configuration>
-						<target>8</target>
-						<source>8</source>
+						<release>${maven.compiler.release}</release>
 						<annotationProcessorPaths>
 							<path>
 								<groupId>org.projectlombok</groupId>

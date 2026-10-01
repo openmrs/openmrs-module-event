@@ -9,7 +9,7 @@
  */
 package org.openmrs.event;
 
-import javax.jms.MessageListener;
+import jakarta.jms.MessageListener;
 
 /**
  * This interface is implemented by modules that want to register/subscribe to events on the

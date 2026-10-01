@@ -14,7 +14,7 @@ import org.openmrs.PatientIdentifier;
 import org.openmrs.PatientIdentifierType;
 import org.openmrs.PatientProgram;
 import org.openmrs.api.PatientService;
-import org.openmrs.event.EntityEvent;
+import org.openmrs.event.EntityActionEvent;
 import org.openmrs.event.Event;
 import org.openmrs.event.TransactionCommittedEvent;
 import org.openmrs.event.TransactionEventListener;
@@ -31,7 +31,7 @@ public class MockTransactionEventListener extends TransactionEventListener {
 	
 	@Override
 	public void transactionCommitted(TransactionCommittedEvent event) {
-		for (EntityEvent entityEvent : event.getEvents()) {
+		for (EntityActionEvent entityEvent : event.getEvents()) {
 			if (entityEvent.getEntity() instanceof PatientProgram) {
 				if (entityEvent.getAction() == Event.Action.CREATED) {
 					PatientProgram patientProgram = (PatientProgram) entityEvent.getEntity();

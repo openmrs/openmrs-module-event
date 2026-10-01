@@ -22,7 +22,7 @@ import org.openmrs.test.Verifies;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.jms.Destination;
+import jakarta.jms.Destination;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;

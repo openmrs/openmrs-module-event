@@ -9,10 +9,10 @@
  */
 package org.openmrs.event;
 
-import javax.jms.MapMessage;
-import javax.jms.Message;
+import jakarta.jms.MapMessage;
+import jakarta.jms.Message;
 
-import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 
 public class EventMessageListener extends MockEventListener {
 	
@@ -31,7 +31,7 @@ public class EventMessageListener extends MockEventListener {
 			state = mapMessage.getString("state");
 		}
 		catch (Exception e) {
-			Assert.fail(e.getMessage());
+			Assertions.fail(e.getMessage());
 		}
 	}
 	

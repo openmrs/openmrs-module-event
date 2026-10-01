@@ -20,7 +20,7 @@ import java.io.Serializable;
  */
 @Data
 @AllArgsConstructor
-public class EntityEvent implements Serializable {
+public class EntityActionEvent implements Serializable {
 	
 	private OpenmrsObject entity;
 	

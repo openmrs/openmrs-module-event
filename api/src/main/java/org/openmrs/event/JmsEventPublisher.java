@@ -25,7 +25,7 @@ public class JmsEventPublisher extends TransactionEventListener {
 	
 	@Override
 	public void transactionCommitted(TransactionCommittedEvent transactionEvent) {
-		for (EntityEvent entityEvent : transactionEvent.getEvents()) {
+		for (EntityActionEvent entityEvent : transactionEvent.getEvents()) {
 			log.trace("Firing event {}: ", entityEvent);
 			Event.fireAction(entityEvent.getAction().name(), entityEvent.getEntity());
 		}

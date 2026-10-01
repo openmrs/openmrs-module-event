@@ -17,7 +17,7 @@ import java.util.Set;
  */
 public class TransactionBeforeCompletionEvent extends TransactionEvent {
 	
-	public TransactionBeforeCompletionEvent(Object source, Set<EntityEvent> events) {
+	public TransactionBeforeCompletionEvent(Object source, Set<EntityActionEvent> events) {
 		super(source, events);
 	}
 }
