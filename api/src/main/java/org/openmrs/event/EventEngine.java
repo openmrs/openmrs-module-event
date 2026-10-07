@@ -177,8 +177,10 @@ public class EventEngine {
 				catch (UnsupportedEncodingException e) {
 					throw new RuntimeException("Failed to encode URI", e);
 				}
-				brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.dataDirectory="
-				        + dataDirectory;
+				// the broker's own JVM shutdown hook would stop it before shutdown() closes the connection,
+				// which then fails; closing the last vm:// connection stops the broker anyway
+				brokerURL = "vm://localhost?broker.persistent=true&broker.useJmx=false&broker.useShutdownHook=false"
+				        + "&broker.dataDirectory=" + dataDirectory;
 			} else {
 				brokerURL = "tcp://" + property;
 			}
